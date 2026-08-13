@@ -11,10 +11,12 @@ function sortByOwnerFirst(users: Membership[]): Membership[] {
 
 interface AccountRowProps {
   account: Account
+  isSelected: boolean
   onAccountUpdated: (updated: Account) => void
+  onSelect: () => void
 }
 
-export function AccountRow({ account, onAccountUpdated }: AccountRowProps) {
+export function AccountRow({ account, isSelected, onAccountUpdated, onSelect }: AccountRowProps) {
   const [expanded, setExpanded] = useState(false)
   const [details, setDetails] = useState<Account | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -111,9 +113,16 @@ export function AccountRow({ account, onAccountUpdated }: AccountRowProps) {
 
   return (
     <li>
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-pressed={isSelected}
+        style={{ fontWeight: isSelected ? 'bold' : 'normal' }}
+      >
+        {account.institution} — {displayedBalance} {account.baseCurrency} ({displayedStatus})
+      </button>
       <button type="button" onClick={toggleExpand}>
-        {expanded ? '▾' : '▸'} {account.institution} — {displayedBalance} {account.baseCurrency} (
-        {displayedStatus})
+        {expanded ? 'Hide details' : 'Manage'}
       </button>
 
       {expanded && (
