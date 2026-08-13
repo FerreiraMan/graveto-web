@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { fetchAllAccounts } from './api'
 import { AccountRow } from './AccountRow'
 import type { Account } from './types'
-import { ApiError } from '../../shared/api/errors'
+import { ApiError } from '../../../shared/api/errors'
 
 export function AccountListPage() {
   const [accounts, setAccounts] = useState<Account[] | null>(null)

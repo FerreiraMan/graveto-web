@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { addMember, closeAccount, fetchAccount } from './api'
 import { MEMBERSHIP_ROLES, type Account, type Membership, type MembershipRole } from './types'
-import { ApiError } from '../../shared/api/errors'
+import { ApiError } from '../../../shared/api/errors'
 
 const CLOSE_CONFIRMATION_TEXT = 'CLOSE'
 

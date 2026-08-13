@@ -22,7 +22,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function register(email: string, password: string) {
     await apiRegister({ email, password })
-    // Registration does not return a token — user still needs to log in explicitly.
   }
 
   function logout() {
