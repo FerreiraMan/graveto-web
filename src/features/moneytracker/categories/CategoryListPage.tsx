@@ -4,7 +4,7 @@ import { fetchAllAccounts } from '../accounts/api'
 import type { Account } from '../accounts/types'
 import { fetchAllCategories } from './api'
 import { groupByParent } from './categoryTree'
-import { CATEGORY_TRANSACTION_TYPES, type Category, type CategoryFilterRequest, type TransactionType } from './types'
+import { CATEGORY_TRANSACTION_TYPES, type Category, type CategoryFilterRequest, TRANSACTION_TYPE_LABELS, type TransactionType } from './types'
 import { ApiError } from '../../../shared/api/errors'
 
 interface CategoryNode {
@@ -62,7 +62,7 @@ function CategoryDetails({ category }: { category: Category }) {
   return (
     <dl>
       <dt>Type</dt>
-      <dd>{category.type}</dd>
+      <dd>{TRANSACTION_TYPE_LABELS[category.type]}</dd>
       <dt>Custom Category</dt>
       <dd>{category.isSystem ? 'No' : 'Yes'}</dd>
     </dl>
@@ -123,6 +123,7 @@ export function CategoryListPage() {
   const [categories, setCategories] = useState<Category[] | null>(null)
   const [parentOptions, setParentOptions] = useState<Category[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   useEffect(() => {
     fetchAllAccounts()
@@ -200,64 +201,74 @@ export function CategoryListPage() {
     ? parentOptions
     : (categories ?? []).filter((category) => !category.parentSid)
 
+  const activeFilterCount = [selectedAccountSid, selectedParentSid, selectedType, debouncedDisplayNameFilter].filter(
+    Boolean,
+  ).length
+
   return (
     <div>
       <h1>Categories</h1>
 
       <Link to="/moneytracker/categories/new">Create category</Link>
 
-      <div>
-        <label htmlFor="account-filter">Account</label>
-        <select
-          id="account-filter"
-          value={selectedAccountSid}
-          onChange={(e) => setSelectedAccountSid(e.target.value)}
-        >
-          <option value="">All accounts</option>
-          {accounts.map((account) => (
-            <option key={account.sid} value={account.sid}>
-              {account.institution}
-            </option>
-          ))}
-        </select>
+      <button type="button" onClick={() => setFiltersOpen((open) => !open)} aria-expanded={filtersOpen}>
+        Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+      </button>
 
-        <label htmlFor="display-name-filter">Name</label>
-        <input
-          id="display-name-filter"
-          type="text"
-          value={displayNameFilter}
-          onChange={(e) => setDisplayNameFilter(e.target.value)}
-          placeholder="Filter by name"
-        />
+      {filtersOpen && (
+        <div>
+          <label htmlFor="account-filter">Account</label>
+          <select
+            id="account-filter"
+            value={selectedAccountSid}
+            onChange={(e) => setSelectedAccountSid(e.target.value)}
+          >
+            <option value="">All accounts</option>
+            {accounts.map((account) => (
+              <option key={account.sid} value={account.sid}>
+                {account.institution}
+              </option>
+            ))}
+          </select>
 
-        <label htmlFor="parent-filter">Parent</label>
-        <select
-          id="parent-filter"
-          value={selectedParentSid}
-          onChange={(e) => setSelectedParentSid(e.target.value)}
-        >
-          <option value="">All parents</option>
-          {parentDropdownOptions.map((category) => (
-            <option key={category.sid} value={category.sid}>
-              {category.displayName}
-            </option>
-          ))}
-        </select>
+          <label htmlFor="display-name-filter">Name</label>
+          <input
+            id="display-name-filter"
+            type="text"
+            value={displayNameFilter}
+            onChange={(e) => setDisplayNameFilter(e.target.value)}
+            placeholder="Filter by name"
+          />
 
-        <label htmlFor="type-filter">Type</label>
-        <select
-          id="type-filter"
-          value={selectedType}
-          onChange={(e) => setSelectedType(e.target.value as TransactionType)}
-        >
-          <option value="">All types</option>
-          {CATEGORY_TRANSACTION_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
-      </div>
+          <label htmlFor="parent-filter">Parent</label>
+          <select
+            id="parent-filter"
+            value={selectedParentSid}
+            onChange={(e) => setSelectedParentSid(e.target.value)}
+          >
+            <option value="">All parents</option>
+            {parentDropdownOptions.map((category) => (
+              <option key={category.sid} value={category.sid}>
+                {category.displayName}
+              </option>
+            ))}
+          </select>
+
+          <label htmlFor="type-filter">Type</label>
+          <select
+            id="type-filter"
+            value={selectedType}
+            onChange={(e) => setSelectedType(e.target.value as TransactionType)}
+          >
+            <option value="">All types</option>
+            {CATEGORY_TRANSACTION_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {TRANSACTION_TYPE_LABELS[type]}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {error && <p role="alert">{error}</p>}
 

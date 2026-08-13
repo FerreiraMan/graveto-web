@@ -3,77 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { fetchAllAccounts } from '../accounts/api'
 import type { Account } from '../accounts/types'
 import { createCategory, fetchAllCategories } from './api'
-import { groupByParent, type CategoryGroup } from './categoryTree'
-import { CATEGORY_TRANSACTION_TYPES, type Category, type TransactionType } from './types'
+import { CategoryPicker } from './CategoryPicker'
+import { groupByParent } from './categoryTree'
+import { CATEGORY_TRANSACTION_TYPES, type Category, TRANSACTION_TYPE_LABELS, type TransactionType } from './types'
 import { ApiError } from '../../../shared/api/errors'
-
-function ParentPicker({
-  groups,
-  selectedSid,
-  onSelect,
-}: {
-  groups: CategoryGroup[]
-  selectedSid: string
-  onSelect: (sid: string) => void
-}) {
-  const [expandedSid, setExpandedSid] = useState<string | null>(null)
-
-  return (
-    <ul>
-      <li>
-        <label>
-          <input type="radio" name="parentSid" checked={selectedSid === ''} onChange={() => onSelect('')} />
-          No parent
-        </label>
-      </li>
-      {groups.map(({ category, childCategories }) => {
-        const hasChildren = childCategories.length > 0
-        const expanded = expandedSid === category.sid
-
-        return (
-          <li key={category.sid}>
-            <label>
-              <input
-                type="radio"
-                name="parentSid"
-                checked={selectedSid === category.sid}
-                onChange={() => onSelect(category.sid)}
-              />
-              {category.displayName}
-            </label>
-            {hasChildren && (
-              <button
-                type="button"
-                onClick={() => setExpandedSid(expanded ? null : category.sid)}
-                aria-label={`${expanded ? 'Collapse' : 'Expand'} ${category.displayName} subcategories`}
-              >
-                {expanded ? '▾' : '▸'}
-              </button>
-            )}
-
-            {hasChildren && expanded && (
-              <ul>
-                {childCategories.map((child) => (
-                  <li key={child.sid}>
-                    <label>
-                      <input
-                        type="radio"
-                        name="parentSid"
-                        checked={selectedSid === child.sid}
-                        onChange={() => onSelect(child.sid)}
-                      />
-                      {child.displayName}
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        )
-      })}
-    </ul>
-  )
-}
 
 export function CreateCategoryPage() {
   const navigate = useNavigate()
@@ -179,7 +112,7 @@ export function CreateCategoryPage() {
         >
           {CATEGORY_TRANSACTION_TYPES.map((type) => (
             <option key={type} value={type}>
-              {type}
+              {TRANSACTION_TYPE_LABELS[type]}
             </option>
           ))}
         </select>
@@ -188,7 +121,14 @@ export function CreateCategoryPage() {
 
       <fieldset disabled={!accountSid}>
         <legend>Parent category (optional)</legend>
-        <ParentPicker groups={parentGroups} selectedSid={parentSid} onSelect={setParentSid} />
+        <CategoryPicker
+          key={accountSid}
+          groups={parentGroups}
+          selectedSid={parentSid}
+          onSelect={setParentSid}
+          noSelectionLabel="No parent"
+          name="parentSid"
+        />
         {fieldErrors.parentSid && <span>{fieldErrors.parentSid}</span>}
       </fieldset>
 
