@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createAccount } from './api'
 import { CURRENCIES, type Currency } from './types'
-import { ApiError } from '../../shared/api/errors'
+import { ApiError } from '../../../shared/api/errors'
 
 export function CreateAccountPage() {
   const navigate = useNavigate()

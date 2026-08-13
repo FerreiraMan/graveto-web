@@ -1,4 +1,4 @@
-import { apiRequest } from '../../shared/api/client'
+import { apiRequest } from '../../../shared/api/client'
 import type { Account, AddMemberRequest, CreateAccountRequest } from './types'
 
 export function createAccount(request: CreateAccountRequest): Promise<Account> {
