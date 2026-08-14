@@ -4,7 +4,7 @@ import { fetchAllAccounts } from './api'
 import { AccountRow } from './AccountRow'
 import type { Account } from './types'
 import { ApiError } from '../../../shared/api/errors'
-import { AccountTransactionsPanel } from '../transactions/AccountTransactionsPanel'
+import { AccountTabs } from './AccountTabs'
 
 export function AccountListPage() {
   const [accounts, setAccounts] = useState<Account[] | null>(null)
@@ -73,7 +73,7 @@ export function AccountListPage() {
 
       <div>
         {selectedAccountSid ? (
-          <AccountTransactionsPanel
+          <AccountTabs
             key={selectedAccountSid}
             accountSid={selectedAccountSid}
             onTransactionMutated={refetchAccounts}
