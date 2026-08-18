@@ -4,7 +4,7 @@ import { fetchAllAccounts } from '../accounts/api'
 import type { Account } from '../accounts/types'
 import { createCategory, fetchAllCategories } from './api'
 import { CategoryPicker } from './CategoryPicker'
-import { groupByParent } from './categoryTree'
+import { groupByParent, isEligibleParent } from './categoryTree'
 import { CATEGORY_TRANSACTION_TYPES, type Category, TRANSACTION_TYPE_LABELS, type TransactionType } from './types'
 import { ApiError } from '../../../shared/api/errors'
 
@@ -128,6 +128,7 @@ export function CreateCategoryPage() {
           onSelect={setParentSid}
           noSelectionLabel="No parent"
           name="parentSid"
+          isSelectable={(category) => isEligibleParent(category, availableParents)}
         />
         {fieldErrors.parentSid && <span>{fieldErrors.parentSid}</span>}
       </fieldset>

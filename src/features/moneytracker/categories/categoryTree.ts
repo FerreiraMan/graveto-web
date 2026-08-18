@@ -2,13 +2,14 @@ import type { Category } from './types'
 
 export interface CategoryGroup {
   category: Category
-  childCategories: Category[]
+  children: CategoryGroup[]
 }
 
-// Groups a flat category list into a two-level structure: top-level
-// categories (no parentSid) with their direct children nested beneath.
-// The domain enforces max depth of 2 — a child is never itself a valid
-// parent — so no recursion is needed here.
+// Builds a nested category tree of arbitrary depth. The backend currently
+// caps categories at 3 levels (root -> level 2 -> level 3, e.g.
+// Transportation -> Fuel -> Diesel), but this doesn't hardcode that limit —
+// it recurses on whatever parent/child links exist in the data, so a future
+// depth change on the backend doesn't require touching this again.
 export function groupByParent(categories: Category[]): CategoryGroup[] {
   const byParentSid = new Map<string, Category[]>()
   const topLevel: Category[] = []
@@ -23,8 +24,34 @@ export function groupByParent(categories: Category[]): CategoryGroup[] {
     }
   }
 
-  return topLevel.map((category) => ({
-    category,
-    childCategories: byParentSid.get(category.sid) ?? [],
-  }))
+  function buildGroup(category: Category): CategoryGroup {
+    const children = byParentSid.get(category.sid) ?? []
+    return {
+      category,
+      children: children.map(buildGroup),
+    }
+  }
+
+  return topLevel.map(buildGroup)
+}
+
+// A category can be a parent for a new category only if it isn't already
+// at the backend's max depth (currently 3 levels: root -> level 2 -> level
+// 3). Mirrors CategoryServiceImpl's check server-side
+// (parent.getParent() != null && parent.getParent().getParent() != null)
+// so the picker can disable those options instead of letting the user
+// submit and get rejected with a 422.
+export function isEligibleParent(category: Category, categories: Category[]): boolean {
+  const bySid = new Map(categories.map((c) => [c.sid, c]))
+
+  let current: Category | undefined = category
+  let depth = 0
+  while (current?.parentSid) {
+    depth++
+    current = bySid.get(current.parentSid)
+  }
+
+  // depth counts how many ancestors the category already has: 0 = root,
+  // 1 = level 2, 2 = level 3 (max). A level-3 category can't be a parent.
+  return depth < 2
 }
