@@ -21,7 +21,7 @@ export interface RecurringTransaction {
 }
 
 export interface RecurringTransactionFilterRequest {
-  accountSid?: string
+  accountSid: string
   status?: RecurringOperationStatus
 }
 

@@ -3,38 +3,46 @@ import { Link } from 'react-router-dom'
 import { fetchAllAccounts } from '../accounts/api'
 import type { Account } from '../accounts/types'
 import { fetchAllCategories } from './api'
-import { groupByParent } from './categoryTree'
+import { groupByParent, type CategoryGroup } from './categoryTree'
 import { CATEGORY_TRANSACTION_TYPES, type Category, type CategoryFilterRequest, TRANSACTION_TYPE_LABELS, type TransactionType } from './types'
 import { ApiError } from '../../../shared/api/errors'
 
 interface CategoryNode {
   category: Category
-  childCategories: Category[]
+  children: CategoryNode[]
   isSynthetic: boolean
 }
 
-// Builds a two-level tree for display: real top-level categories (grouped
-// via the shared groupByParent helper) plus synthetic stand-in parents for
-// any child whose real parent got excluded by an active filter.
+// Builds a tree for display, recursively (matches the backend's category
+// depth, currently up to 3 levels): real categories (grouped via the
+// shared groupByParent helper) plus synthetic stand-in parents for any
+// child whose real parent got excluded by an active filter.
 //
-// When a filter (e.g. displayName search) matches a child but excludes its
-// parent, the parent is missing from the result set. Rather than dropping
-// the child or showing it as a bare top-level item, a synthetic parent node
-// is created from parentSid/parentDisplayName so the child still renders
-// nested under a labeled, expandable parent — same shape the user expects
-// when browsing unfiltered. The API already returns categories in
-// alphabetical order by displayName, so no re-sorting is done here —
-// insertion order is preserved.
+// When a filter (e.g. displayName search) matches a category but excludes
+// its direct parent, the parent is missing from the result set. Rather
+// than dropping the child or showing it as a bare top-level item, a
+// synthetic parent node is created from parentSid/parentDisplayName so the
+// child still renders nested under a labeled, expandable parent — same
+// shape the user expects when browsing unfiltered. This only reconstructs
+// one missing level (a synthetic parent's own parent, if also excluded, is
+// not itself reconstructed) — a deliberately simple fallback for filtered
+// views, not a full ancestor-chain rebuild. The API already returns
+// categories in alphabetical order by displayName, so no re-sorting is
+// done here — insertion order is preserved.
 function buildCategoryTree(categories: Category[]): CategoryNode[] {
   const bySid = new Map(categories.map((category) => [category.sid, category]))
   const orphans = categories.filter((category) => category.parentSid && !bySid.has(category.parentSid))
   const withoutOrphans = categories.filter((category) => !category.parentSid || bySid.has(category.parentSid))
 
-  const realNodes: CategoryNode[] = groupByParent(withoutOrphans).map(({ category, childCategories }) => ({
-    category,
-    childCategories,
-    isSynthetic: false,
-  }))
+  function toCategoryNode(group: CategoryGroup): CategoryNode {
+    return {
+      category: group.category,
+      children: group.children.map(toCategoryNode),
+      isSynthetic: false,
+    }
+  }
+
+  const realNodes: CategoryNode[] = groupByParent(withoutOrphans).map(toCategoryNode)
 
   const syntheticByParentSid = new Map<string, Category[]>()
   for (const orphan of orphans) {
@@ -51,7 +59,7 @@ function buildCategoryTree(categories: Category[]): CategoryNode[] {
       type: children[0].type,
       isSystem: children[0].isSystem,
     },
-    childCategories: children,
+    children: children.map((child) => ({ category: child, children: [], isSynthetic: false })),
     isSynthetic: true,
   }))
 
@@ -71,17 +79,17 @@ function CategoryDetails({ category }: { category: Category }) {
 
 function CategoryTreeItem({
   category,
-  childCategories = [],
+  childGroups = [],
   isSynthetic = false,
 }: {
   category: Category
-  childCategories?: Category[]
+  childGroups?: CategoryNode[]
   isSynthetic?: boolean
 }) {
   // Synthetic parent nodes exist only because a search matched inside them —
   // start expanded so the match is immediately visible, no extra click.
   const [expanded, setExpanded] = useState(isSynthetic)
-  const hasChildren = childCategories.length > 0
+  const hasChildren = childGroups.length > 0
 
   return (
     <li>
@@ -93,8 +101,13 @@ function CategoryTreeItem({
 
       {hasChildren && expanded && (
         <ul>
-          {childCategories.map((child) => (
-            <CategoryTreeItem key={child.sid} category={child} />
+          {childGroups.map((child) => (
+            <CategoryTreeItem
+              key={child.category.sid}
+              category={child.category}
+              childGroups={child.children}
+              isSynthetic={child.isSynthetic}
+            />
           ))}
         </ul>
       )}
@@ -282,7 +295,7 @@ export function CategoryListPage() {
             <CategoryTreeItem
               key={node.category.sid}
               category={node.category}
-              childCategories={node.childCategories}
+              childGroups={node.children}
               isSynthetic={node.isSynthetic}
             />
           ))}

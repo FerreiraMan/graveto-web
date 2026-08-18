@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { ApiError } from '../../../shared/api/errors'
 import { EDITABLE_RECURRING_STATUSES, RECURRING_STATUS_LABELS, type RecurringOperationStatus } from '../recurring/types'
 import { TRANSACTION_TYPE_LABELS } from '../categories/types'
+import { fetchAllAccounts } from '../accounts/api'
+import type { Account } from '../accounts/types'
 import { fetchRecurringTransactions } from '../recurringTransactions/api'
 import type { RecurringTransaction } from '../recurringTransactions/types'
 import { CreateRecurringTransactionForm } from '../recurringTransactions/CreateRecurringTransactionForm'
@@ -176,15 +178,26 @@ function RecurringTransfersSection({
   onMutated: () => void
 }) {
   const [status, setStatus] = useState<RecurringOperationStatus | ''>('')
+  const [destinationAccountSid, setDestinationAccountSid] = useState('')
+  const [accounts, setAccounts] = useState<Account[]>([])
   const [items, setItems] = useState<RecurringTransfer[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchAllAccounts()
+      .then(setAccounts)
+      .catch(() => {
+        // Destination filter dropdown is a convenience — if it fails to load, the
+        // transfer list below still works unfiltered, so no user-facing error here.
+      })
+  }, [])
 
   useEffect(() => {
     let cancelled = false
     setItems(null)
     setError(null)
 
-    fetchRecurringTransfersForAccount(accountSid, status || undefined)
+    fetchRecurringTransfersForAccount(accountSid, { status: status || undefined, destinationAccountSid: destinationAccountSid || undefined })
       .then((result) => {
         if (!cancelled) setItems(result)
       })
@@ -195,7 +208,7 @@ function RecurringTransfersSection({
     return () => {
       cancelled = true
     }
-  }, [accountSid, status, refetchToken])
+  }, [accountSid, status, destinationAccountSid, refetchToken])
 
   const isCreating = openForm?.kind === 'create-transfer'
   const editing = openForm?.kind === 'edit-transfer' ? openForm.item : null
@@ -238,6 +251,22 @@ function RecurringTransfersSection({
         ))}
       </select>
 
+      <label htmlFor="recurring-transfer-destination-filter">Destination account</label>
+      <select
+        id="recurring-transfer-destination-filter"
+        value={destinationAccountSid}
+        onChange={(e) => setDestinationAccountSid(e.target.value)}
+      >
+        <option value="">All destination accounts</option>
+        {accounts
+          .filter((account) => account.sid !== accountSid)
+          .map((account) => (
+            <option key={account.sid} value={account.sid}>
+              {account.institution}
+            </option>
+          ))}
+      </select>
+
       {error && <p role="alert">{error}</p>}
 
       {items === null && !error && <p>Loading…</p>}
@@ -249,8 +278,7 @@ function RecurringTransfersSection({
           <thead>
             <tr>
               <th>Description</th>
-              <th>Direction</th>
-              <th>Counterparty</th>
+              <th>Destination account</th>
               <th>Amount</th>
               <th>Next execution</th>
               <th>Status</th>
@@ -258,35 +286,29 @@ function RecurringTransfersSection({
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => {
-              const isOutgoing = item.sourceAccount.sid === accountSid
-              const counterparty = isOutgoing ? item.destinationAccount : item.sourceAccount
-
-              return (
-                <tr key={item.sid}>
-                  <td>{item.description}</td>
-                  <td>{isOutgoing ? 'To' : 'From'}</td>
-                  <td>{counterparty.name}</td>
-                  <td>
-                    {item.amount} {item.currency}
-                  </td>
-                  <td>{item.nextExecutionDate}</td>
-                  <td>{RECURRING_STATUS_LABELS[item.status]}</td>
-                  <td>
-                    <RecurringTransferRowMenu
-                      recurringTransfer={item}
-                      isOpen={openMenuSid === item.sid}
-                      onOpenChange={(isOpen) => {
-                        onOpenMenuSid(isOpen ? item.sid : null)
-                        if (isOpen) onOpenForm(null)
-                      }}
-                      onEdit={() => onOpenForm({ kind: 'edit-transfer', item })}
-                      onCanceled={onMutated}
-                    />
-                  </td>
-                </tr>
-              )
-            })}
+            {items.map((item) => (
+              <tr key={item.sid}>
+                <td>{item.description}</td>
+                <td>{item.destinationAccount.name}</td>
+                <td>
+                  {item.amount} {item.currency}
+                </td>
+                <td>{item.nextExecutionDate}</td>
+                <td>{RECURRING_STATUS_LABELS[item.status]}</td>
+                <td>
+                  <RecurringTransferRowMenu
+                    recurringTransfer={item}
+                    isOpen={openMenuSid === item.sid}
+                    onOpenChange={(isOpen) => {
+                      onOpenMenuSid(isOpen ? item.sid : null)
+                      if (isOpen) onOpenForm(null)
+                    }}
+                    onEdit={() => onOpenForm({ kind: 'edit-transfer', item })}
+                    onCanceled={onMutated}
+                  />
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       )}
