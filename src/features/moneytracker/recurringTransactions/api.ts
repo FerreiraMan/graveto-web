@@ -10,7 +10,7 @@ import type {
 // unlike /transactions, this endpoint has no pagination.
 export function fetchRecurringTransactions(filters: RecurringTransactionFilterRequest): Promise<RecurringTransaction[]> {
   const params = new URLSearchParams()
-  if (filters.accountSid) params.append('accountSid', filters.accountSid)
+  params.append('accountSid', filters.accountSid)
   if (filters.status) params.append('status', filters.status)
 
   return apiRequest<RecurringTransaction[]>(`/recurring-transactions?${params.toString()}`)

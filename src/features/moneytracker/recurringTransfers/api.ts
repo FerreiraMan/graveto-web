@@ -8,29 +8,23 @@ import type {
 
 function fetchByFilter(filters: RecurringTransferFilterRequest): Promise<RecurringTransfer[]> {
   const params = new URLSearchParams()
-  if (filters.sourceAccountSid) params.append('sourceAccountSid', filters.sourceAccountSid)
+  params.append('accountSid', filters.accountSid)
   if (filters.destinationAccountSid) params.append('destinationAccountSid', filters.destinationAccountSid)
   if (filters.status) params.append('status', filters.status)
 
   return apiRequest<RecurringTransfer[]>(`/recurring-transfers?${params.toString()}`)
 }
 
-// sourceAccountSid and destinationAccountSid combine with AND server-side,
-// not OR — passing both would only match a transfer that is (impossibly)
-// both source and destination of itself. To show every recurring transfer
-// touching this account regardless of direction, fetch each role
-// separately and merge. Safe to concat without dedup: a transfer can never
-// have the same account on both sides, so the two result sets are disjoint.
-export async function fetchRecurringTransfersForAccount(
+// Recurring transfers are source-account-centric: accountSid is mandatory
+// server-side and always means "this account as the source", matching the
+// currently selected account — never optional, never the destination side.
+// destinationAccountSid stays available as a further, optional narrowing
+// filter (e.g. "transfers from this account to that one specifically").
+export function fetchRecurringTransfersForAccount(
   accountSid: string,
-  status?: RecurringTransferFilterRequest['status'],
+  filters?: Omit<RecurringTransferFilterRequest, 'accountSid'>,
 ): Promise<RecurringTransfer[]> {
-  const [asSource, asDestination] = await Promise.all([
-    fetchByFilter({ sourceAccountSid: accountSid, status }),
-    fetchByFilter({ destinationAccountSid: accountSid, status }),
-  ])
-
-  return [...asSource, ...asDestination]
+  return fetchByFilter({ accountSid, ...filters })
 }
 
 export function createRecurringTransfer(request: CreateRecurringTransferRequest): Promise<RecurringTransfer> {

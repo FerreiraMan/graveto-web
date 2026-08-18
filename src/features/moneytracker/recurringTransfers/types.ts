@@ -14,8 +14,12 @@ export interface RecurringTransfer {
   endDate?: string
 }
 
+// accountSid is mandatory server-side — always the currently selected
+// account, treated as the transfer's source. Never optional; kept
+// non-optional here (unlike destinationAccountSid/status) so the type
+// itself reflects that, rather than only enforcing it at the call site.
 export interface RecurringTransferFilterRequest {
-  sourceAccountSid?: string
+  accountSid: string
   destinationAccountSid?: string
   status?: RecurringOperationStatus
 }
