@@ -3,6 +3,7 @@ import { fetchAllCategories } from '../categories/api'
 import { CategoryPicker } from '../categories/CategoryPicker'
 import { ALL_TRANSACTION_TYPES, TRANSACTION_TYPE_LABELS, type Category, type TransactionType } from '../categories/types'
 import { ApiError } from '../../../shared/api/errors'
+import { currencySymbol } from '../currency'
 import { fetchTransactions } from './api'
 import { TRANSACTION_STATUS_LABELS, isTransferLeg, type Transaction, type TransactionFilterRequest, type TransactionStatus } from './types'
 import { groupByParent } from '../categories/categoryTree'
@@ -249,7 +250,8 @@ export function AccountTransactionsPanel({
                 <td>{transaction.category.name}</td>
                 <td>{TRANSACTION_TYPE_LABELS[transaction.type]}</td>
                 <td>
-                  {transaction.amount} {transaction.currency}
+                  {transaction.amount}
+                  {currencySymbol(transaction.currency)}
                 </td>
                 <td>{TRANSACTION_STATUS_LABELS[transaction.status]}</td>
                 <td>

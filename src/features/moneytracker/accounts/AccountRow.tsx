@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { addMember, closeAccount, fetchAccount } from './api'
 import { MEMBERSHIP_ROLES, type Account, type Membership, type MembershipRole } from './types'
 import { ApiError } from '../../../shared/api/errors'
+import { currencySymbol } from '../currency'
 
 const CLOSE_CONFIRMATION_TEXT = 'CLOSE'
 
@@ -119,7 +120,8 @@ export function AccountRow({ account, isSelected, onAccountUpdated, onSelect }: 
         aria-pressed={isSelected}
         style={{ fontWeight: isSelected ? 'bold' : 'normal' }}
       >
-        {account.institution} — {displayedBalance} {account.baseCurrency} ({displayedStatus})
+        {account.institution} — {displayedBalance}
+        {currencySymbol(account.baseCurrency)} ({displayedStatus})
       </button>
       <button type="button" onClick={toggleExpand}>
         {expanded ? 'Hide details' : 'Manage'}
@@ -133,7 +135,7 @@ export function AccountRow({ account, isSelected, onAccountUpdated, onSelect }: 
             <>
               <ul>
                 <li>SID: {details.sid}</li>
-                <li>Balance: {details.balance} {details.baseCurrency}</li>
+                <li>Balance: {details.balance}{currencySymbol(details.baseCurrency)}</li>
                 <li>Status: {details.status}</li>
                 <li>Institution: {details.institution}</li>
                 <li>
