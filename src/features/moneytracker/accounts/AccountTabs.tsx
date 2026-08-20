@@ -16,9 +16,11 @@ const TABS: { id: AccountTab; label: string }[] = [
 // resets both the selected tab AND every tab's internal state in one place.
 export function AccountTabs({
   accountSid,
+  currency,
   onTransactionMutated,
 }: {
   accountSid: string
+  currency: string
   onTransactionMutated: () => void
 }) {
   const [activeTab, setActiveTab] = useState<AccountTab>('overview')
@@ -38,7 +40,7 @@ export function AccountTabs({
         ))}
       </nav>
 
-      {activeTab === 'overview' && <AccountOverviewPanel />}
+      {activeTab === 'overview' && <AccountOverviewPanel accountSid={accountSid} currency={currency} />}
       {activeTab === 'transactions' && (
         <AccountTransactionsPanel accountSid={accountSid} onTransactionMutated={onTransactionMutated} />
       )}

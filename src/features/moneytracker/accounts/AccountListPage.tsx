@@ -76,6 +76,7 @@ export function AccountListPage() {
           <AccountTabs
             key={selectedAccountSid}
             accountSid={selectedAccountSid}
+            currency={accounts?.find((a) => a.sid === selectedAccountSid)?.baseCurrency ?? ''}
             onTransactionMutated={refetchAccounts}
           />
         ) : (

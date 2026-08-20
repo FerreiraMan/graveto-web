@@ -4,6 +4,7 @@ import { EDITABLE_RECURRING_STATUSES, RECURRING_STATUS_LABELS, type RecurringOpe
 import { TRANSACTION_TYPE_LABELS } from '../categories/types'
 import { fetchAllAccounts } from '../accounts/api'
 import type { Account } from '../accounts/types'
+import { currencySymbol } from '../currency'
 import { fetchRecurringTransactions } from '../recurringTransactions/api'
 import type { RecurringTransaction } from '../recurringTransactions/types'
 import { CreateRecurringTransactionForm } from '../recurringTransactions/CreateRecurringTransactionForm'
@@ -135,7 +136,8 @@ function RecurringTransactionsSection({
                 <td>{item.category.name}</td>
                 <td>{TRANSACTION_TYPE_LABELS[item.transactionType]}</td>
                 <td>
-                  {item.amount} {item.currency}
+                  {item.amount}
+                  {currencySymbol(item.currency)}
                 </td>
                 <td>{item.nextExecutionDate}</td>
                 <td>{RECURRING_STATUS_LABELS[item.status]}</td>
@@ -291,7 +293,8 @@ function RecurringTransfersSection({
                 <td>{item.description}</td>
                 <td>{item.destinationAccount.name}</td>
                 <td>
-                  {item.amount} {item.currency}
+                  {item.amount}
+                  {currencySymbol(item.currency)}
                 </td>
                 <td>{item.nextExecutionDate}</td>
                 <td>{RECURRING_STATUS_LABELS[item.status]}</td>
