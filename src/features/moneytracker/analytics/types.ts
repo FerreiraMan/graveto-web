@@ -2,7 +2,9 @@ export interface MonthlyCashFlow {
   month: number
   income: number
   expense: number
-  netFlow: number
+  transfersIn: number
+  transfersOut: number
+  monthlyNetIncomeExpense: number
   balanceAtEndOfMonth: number
 }
 
@@ -11,7 +13,9 @@ export interface CashFlowReport {
   year: number
   yearlyIncome: number
   yearlyExpense: number
-  yearlyNetFlow: number
+  yearlyTransfersIn: number
+  yearlyTransfersOut: number
+  yearlyNetIncomeExpense: number
   balanceAtEndOfYear: number
   monthlyCashFlow: MonthlyCashFlow[]
 }
