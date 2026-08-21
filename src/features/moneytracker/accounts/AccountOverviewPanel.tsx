@@ -81,7 +81,15 @@ export function AccountOverviewPanel({ accountSid, currency }: { accountSid: str
               {symbol}
             </li>
             <li>
-              Net flow: {report.yearlyNetFlow}
+              Transfers in: {report.yearlyTransfersIn}
+              {symbol}
+            </li>
+            <li>
+              Transfers out: {report.yearlyTransfersOut}
+              {symbol}
+            </li>
+            <li>
+              Net income/expense: {report.yearlyNetIncomeExpense}
               {symbol}
             </li>
             <li>
@@ -96,7 +104,9 @@ export function AccountOverviewPanel({ accountSid, currency }: { accountSid: str
                 <th>Month</th>
                 <th>Income</th>
                 <th>Expense</th>
-                <th>Net flow</th>
+                <th>Transfers in</th>
+                <th>Transfers out</th>
+                <th>Net income/expense</th>
                 <th>Balance at end of month</th>
               </tr>
             </thead>
@@ -113,7 +123,15 @@ export function AccountOverviewPanel({ accountSid, currency }: { accountSid: str
                     {symbol}
                   </td>
                   <td>
-                    {m.netFlow}
+                    {m.transfersIn}
+                    {symbol}
+                  </td>
+                  <td>
+                    {m.transfersOut}
+                    {symbol}
+                  </td>
+                  <td>
+                    {m.monthlyNetIncomeExpense}
                     {symbol}
                   </td>
                   <td>
