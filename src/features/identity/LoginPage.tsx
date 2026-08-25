@@ -28,44 +28,50 @@ export function LoginPage() {
   }
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
-      <h1>Log in</h1>
+    <div className={styles.page}>
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <h1 className={styles.title}>Log in</h1>
 
-      {error && <p className={styles.error} role="alert">{error}</p>}
+        {error && (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        )}
 
-      <div className={styles.field}>
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-      </div>
+        <div className={styles.field}>
+          <label htmlFor="email">Email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
 
-      <div className={styles.field}>
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-      </div>
+        <div className={styles.field}>
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
 
-      <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Logging in…' : 'Log in'}
-      </button>
+        <button type="submit" className={styles.submit} disabled={isSubmitting}>
+          {isSubmitting ? 'Logging in…' : 'Log in'}
+        </button>
 
-      <p>
-        No account yet? <Link to="/register">Register</Link>
-      </p>
-    </form>
+        <p className={styles.switchLink}>
+          No account yet? <Link to="/register">Register</Link>
+        </p>
+      </form>
+    </div>
   )
 }

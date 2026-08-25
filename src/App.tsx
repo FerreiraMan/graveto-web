@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
 import { AuthProvider } from './features/identity/AuthContext'
 import { useAuth } from './features/identity/useAuth'
 import { LoginPage } from './features/identity/LoginPage'
@@ -14,6 +14,7 @@ import { NotificationProvider } from './shared/components/NotificationContext'
 import { NotificationList } from './shared/components/NotificationList'
 import { useNotifications } from './shared/components/useNotifications'
 import { registerGlobalErrorHandlers } from './shared/api/errorHandlers'
+import navStyles from './Nav.module.css'
 
 function Home() {
   const { logout } = useAuth()
@@ -27,23 +28,30 @@ function Home() {
   )
 }
 
+function navLinkClassName({ isActive }: { isActive: boolean }): string {
+  return isActive ? navStyles.active : ''
+}
+
 function Nav() {
   const { isAuthenticated } = useAuth()
+
+  // Nothing here is reachable while logged out — Home/Money Tracker/
+  // Portfolio all sit behind ProtectedRoute and just bounce back to
+  // /login — and the auth pages already offer their own Log in/Register
+  // switch link. Showing the nav there is dead links, not navigation.
+  if (!isAuthenticated) return null
+
   return (
-    <nav>
-      <Link to="/">Home</Link>
-      {' | '}
-      <Link to="/moneytracker">Money Tracker</Link>
-      {' | '}
-      <Link to="/portfolio">Portfolio</Link>
-      {!isAuthenticated && (
-        <>
-          {' | '}
-          <Link to="/login">Log in</Link>
-          {' | '}
-          <Link to="/register">Register</Link>
-        </>
-      )}
+    <nav className={navStyles.nav}>
+      <NavLink to="/" className={navLinkClassName}>
+        Home
+      </NavLink>
+      <NavLink to="/moneytracker" className={navLinkClassName}>
+        Money Tracker
+      </NavLink>
+      <NavLink to="/portfolio" className={navLinkClassName}>
+        Portfolio
+      </NavLink>
     </nav>
   )
 }

@@ -1,4 +1,20 @@
 body {
   margin: 0;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  background: var(--color-ground);
+  color: var(--color-text);
+}
+
+/* Design tokens — "The Night Ledger" (see DESIGN.md). Single source of
+ * truth for every component's colors; do not hardcode these hex values
+ * anywhere else. */
+:root {
+  --color-ground: #121417;
+  --color-surface: #1c1f24;
+  --color-border: #2a2e35;
+  --color-text: #e8e9eb;
+  --color-text-muted: #8a8f98;
+  --color-accent: #3fb8af;
+  --color-accent-hover: #55c9c0;
+  --color-danger: #e0685f;
 }
