@@ -42,56 +42,64 @@ export function RegisterPage() {
 
   if (success) {
     return (
-      <div className={styles.form}>
-        <h1>Registration successful</h1>
-        <p>
-          You can now <Link to="/login">log in</Link>.
-        </p>
+      <div className={styles.page}>
+        <div className={styles.form}>
+          <h1 className={styles.title}>Registration successful</h1>
+          <p className={styles.switchLink}>
+            You can now <Link to="/login">log in</Link>.
+          </p>
+        </div>
       </div>
     )
   }
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
-      <h1>Register</h1>
+    <div className={styles.page}>
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <h1 className={styles.title}>Register</h1>
 
-      {error && <p className={styles.error} role="alert">{error}</p>}
+        {error && (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        )}
 
-      <div className={styles.field}>
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        {fieldErrors.email && <span className={styles.fieldError}>{fieldErrors.email}</span>}
-      </div>
+        <div className={styles.field}>
+          <label htmlFor="email">Email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          {fieldErrors.email && <span className={styles.fieldError}>{fieldErrors.email}</span>}
+        </div>
 
-      <div className={styles.field}>
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        {fieldErrors.password && <span className={styles.fieldError}>{fieldErrors.password}</span>}
-      </div>
+        <div className={styles.field}>
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          {fieldErrors.password && <span className={styles.fieldError}>{fieldErrors.password}</span>}
+        </div>
 
-      <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Registering…' : 'Register'}
-      </button>
+        <button type="submit" className={styles.submit} disabled={isSubmitting}>
+          {isSubmitting ? 'Registering…' : 'Register'}
+        </button>
 
-      <p>
-        Already have an account? <Link to="/login">Log in</Link>
-      </p>
-    </form>
+        <p className={styles.switchLink}>
+          Already have an account? <Link to="/login">Log in</Link>
+        </p>
+      </form>
+    </div>
   )
 }
