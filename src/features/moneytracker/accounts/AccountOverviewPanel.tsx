@@ -11,17 +11,25 @@ function monthLabel(month: number): string {
   return MONTH_FORMATTER.format(new Date(2000, month - 1, 1))
 }
 
-export function AccountOverviewPanel({ accountSid, currency }: { accountSid: string; currency: string }) {
-  // undefined until the user picks a year — the first fetch omits `year`
-  // entirely so the backend applies its own default (current year).
-  const [year, setYear] = useState<number | undefined>(undefined)
+export function AccountOverviewPanel({
+  accountSid,
+  currency,
+  year,
+  onYearResolved,
+}: {
+  accountSid: string
+  currency: string
+  // undefined until a year has been picked — the initial fetch omits
+  // `year` entirely so the backend applies its own default. Lives in the
+  // parent (AccountTabs) so the Category Spending tab can share it.
+  year: number | undefined
+  // Called once a report has loaded, with the backend-confirmed year and
+  // the full list of years with data — the parent uses this to populate
+  // the shared year selector and to resolve the initial "no year picked
+  // yet" state to whatever year the backend actually used.
+  onYearResolved: (year: number, availableYears: number[]) => void
+}) {
   const [report, setReport] = useState<CashFlowReport | null>(null)
-  // Kept separate from `report` so the year selector stays mounted (with
-  // its last known options) while a new year's data is loading, instead of
-  // disappearing and reappearing on every change — report itself is still
-  // cleared to null while loading, same "Loading…" convention as the other
-  // panels in this feature.
-  const [availableYears, setAvailableYears] = useState<number[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const symbol = currencySymbol(currency)
 
@@ -34,10 +42,7 @@ export function AccountOverviewPanel({ accountSid, currency }: { accountSid: str
       .then((result) => {
         if (cancelled) return
         setReport(result)
-        setAvailableYears(result.yearsWithCashFlows)
-        // First load has no explicit year yet — pin it to whatever the
-        // backend actually used so the select reflects reality immediately.
-        setYear((current) => current ?? result.year)
+        onYearResolved(result.year, result.yearsWithCashFlows)
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof ApiError ? err.message : 'Failed to load cash flow report.')
@@ -46,25 +51,10 @@ export function AccountOverviewPanel({ accountSid, currency }: { accountSid: str
     return () => {
       cancelled = true
     }
-  }, [accountSid, year])
+  }, [accountSid, year, onYearResolved])
 
   return (
     <div>
-      <h2>Overview</h2>
-
-      {availableYears !== null && (
-        <>
-          <label htmlFor="cash-flow-year">Year</label>
-          <select id="cash-flow-year" value={year ?? ''} onChange={(e) => setYear(Number(e.target.value))}>
-            {availableYears.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-        </>
-      )}
-
       {error && <p role="alert">{error}</p>}
 
       {report === null && !error && <p>Loading…</p>}

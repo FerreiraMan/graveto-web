@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AccountOverviewPanel } from './AccountOverviewPanel'
+import { AccountOverviewSection } from './AccountOverviewSection'
 import { AccountTransactionsPanel } from '../transactions/AccountTransactionsPanel'
 import { RecurringOperationsPanel } from '../recurring/RecurringOperationsPanel'
 
@@ -40,7 +40,7 @@ export function AccountTabs({
         ))}
       </nav>
 
-      {activeTab === 'overview' && <AccountOverviewPanel accountSid={accountSid} currency={currency} />}
+      {activeTab === 'overview' && <AccountOverviewSection accountSid={accountSid} currency={currency} />}
       {activeTab === 'transactions' && (
         <AccountTransactionsPanel accountSid={accountSid} onTransactionMutated={onTransactionMutated} />
       )}

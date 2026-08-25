@@ -19,3 +19,19 @@ export interface CashFlowReport {
   balanceAtEndOfYear: number
   monthlyCashFlow: MonthlyCashFlow[]
 }
+
+export interface CategoryAggregate {
+  categorySid: string
+  categoryName: string
+  yearlyTotal: number
+  // Backend sends a Map<Integer, BigDecimal> keyed by month (1-12), always
+  // zero-padded for every month regardless of whether it had any spend.
+  monthlyTotals: Record<string, number>
+  childCategories: CategoryAggregate[]
+}
+
+export interface CategorySpendingReport {
+  year: number
+  categories: CategoryAggregate[]
+}
+
