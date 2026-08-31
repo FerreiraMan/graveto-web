@@ -1,31 +1,39 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { fetchAllAccounts } from './api'
 import { AccountRow } from './AccountRow'
+import { CreateAccountModal } from './CreateAccountModal'
 import type { Account } from './types'
 import { ApiError } from '../../../shared/api/errors'
 import { AccountTabs } from './AccountTabs'
+import styles from '../MoneyTracker.module.css'
 
 export function AccountListPage() {
   const [accounts, setAccounts] = useState<Account[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedAccountSid, setSelectedAccountSid] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
+  const [isCreating, setIsCreating] = useState(false)
 
   useEffect(() => {
     let cancelled = false
 
-    fetchAllAccounts()
-      .then((result) => {
-        if (!cancelled) setAccounts(result)
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Failed to load accounts.')
-      })
+    function load() {
+      setError(null)
+      fetchAllAccounts()
+        .then((result) => {
+          if (!cancelled) setAccounts(result)
+        })
+        .catch((err) => {
+          if (!cancelled) setError(err instanceof ApiError ? err.message : 'Failed to load accounts.')
+        })
+    }
+
+    load()
 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [retryCount])
 
   function handleAccountUpdated(updated: Account) {
     setAccounts((current) =>
@@ -44,45 +52,70 @@ export function AccountListPage() {
   }
 
   return (
-    <div style={{ display: 'flex', gap: '2rem' }}>
-      <div>
-        <h1>Accounts</h1>
+    <div className={styles.layout}>
+      <div className={styles.listColumn}>
+        <h1 className={styles.srOnly}>Accounts</h1>
 
-        <Link to="/moneytracker/accounts/new">Create account</Link>
+        <div className={styles.pageHeader}>
+          <button type="button" className={styles.primaryButton} onClick={() => setIsCreating(true)}>
+            Create account
+          </button>
+        </div>
 
-        {error && <p role="alert">{error}</p>}
+        {error && (
+          <p className={styles.errorText} role="alert">
+            {error}{' '}
+            <button type="button" className={styles.linkButton} onClick={() => setRetryCount((n) => n + 1)}>
+              Retry
+            </button>
+          </p>
+        )}
 
-        {accounts === null && !error && <p>Loading…</p>}
+        {accounts === null && !error && <p className={styles.mutedText}>Loading…</p>}
 
-        {accounts !== null && accounts.length === 0 && <p>No accounts yet.</p>}
+        {accounts !== null && accounts.length === 0 && <p className={styles.mutedText}>No accounts yet.</p>}
 
         {accounts !== null && accounts.length > 0 && (
-          <ul>
+          <ul className={styles.list}>
             {accounts.map((account) => (
               <AccountRow
                 key={account.sid}
                 account={account}
-                isSelected={account.sid === selectedAccountSid}
+                isExpanded={account.sid === selectedAccountSid}
                 onAccountUpdated={handleAccountUpdated}
-                onSelect={() => setSelectedAccountSid(account.sid)}
+                onToggle={() =>
+                  setSelectedAccountSid((current) => (current === account.sid ? null : account.sid))
+                }
               />
             ))}
           </ul>
         )}
       </div>
 
-      <div>
+      <div className={styles.detailColumn}>
         {selectedAccountSid ? (
           <AccountTabs
             key={selectedAccountSid}
             accountSid={selectedAccountSid}
+            institution={accounts?.find((a) => a.sid === selectedAccountSid)?.institution ?? ''}
             currency={accounts?.find((a) => a.sid === selectedAccountSid)?.baseCurrency ?? ''}
             onTransactionMutated={refetchAccounts}
           />
         ) : (
-          <p>Select an account to view its transactions.</p>
+          <p className={styles.mutedText}>Select an account to view its transactions.</p>
         )}
       </div>
+
+      {isCreating && (
+        <CreateAccountModal
+          onClose={() => setIsCreating(false)}
+          onCreated={(created) => {
+            setAccounts((current) => (current === null ? [created] : [...current, created]))
+            setSelectedAccountSid(created.sid)
+            setIsCreating(false)
+          }}
+        />
+      )}
     </div>
   )
 }

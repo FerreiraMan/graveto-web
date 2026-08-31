@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from './features/identity/useAuth'
 import { LogoutControl } from './LogoutControl'
@@ -33,6 +33,16 @@ function nameFromEmail(email: string): string {
 export function HomePage() {
   const { email, logout } = useAuth()
   const [confirmingLogout, setConfirmingLogout] = useState(false)
+
+  useEffect(() => {
+    if (!confirmingLogout) return
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setConfirmingLogout(false)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [confirmingLogout])
 
   const greeting = greetingForHour(new Date().getHours())
   const title = email ? `${greeting}, ${nameFromEmail(email)}` : greeting

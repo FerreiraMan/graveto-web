@@ -23,6 +23,11 @@
   color: var(--color-accent);
 }
 
+.nav a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 .logout {
   margin-left: auto;
 }
