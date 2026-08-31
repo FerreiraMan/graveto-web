@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from './useAuth'
 import { ApiError } from '../../shared/api/errors'
+import { isValidEmail } from './validation'
 import styles from './AuthForm.module.css'
 
 const MIN_PASSWORD_LENGTH = 5
@@ -20,8 +21,15 @@ export function RegisterPage() {
     setError(null)
     setFieldErrors({})
 
+    const nextFieldErrors: Record<string, string> = {}
+    if (!isValidEmail(email)) {
+      nextFieldErrors.email = 'Please enter a valid email address.'
+    }
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setFieldErrors({ password: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` })
+      nextFieldErrors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`
+    }
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors)
       return
     }
 
@@ -44,7 +52,7 @@ export function RegisterPage() {
     return (
       <div className={styles.page}>
         <div className={styles.form}>
-          <h1 className={styles.title}>Registration successful</h1>
+          <h1 className={styles.successTitle}>Registration successful</h1>
           <p className={styles.switchLink}>
             You can now <Link to="/login">log in</Link>.
           </p>
@@ -55,7 +63,7 @@ export function RegisterPage() {
 
   return (
     <div className={styles.page}>
-      <form className={styles.form} onSubmit={handleSubmit}>
+      <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <h1 className={styles.title}>Register</h1>
 
         {error && (
@@ -72,10 +80,16 @@ export function RegisterPage() {
             type="email"
             autoComplete="email"
             required
+            aria-invalid={fieldErrors.email ? true : undefined}
+            aria-describedby={fieldErrors.email ? 'email-error' : undefined}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          {fieldErrors.email && <span className={styles.fieldError}>{fieldErrors.email}</span>}
+          {fieldErrors.email && (
+            <span id="email-error" className={styles.fieldError}>
+              {fieldErrors.email}
+            </span>
+          )}
         </div>
 
         <div className={styles.field}>
@@ -86,10 +100,16 @@ export function RegisterPage() {
             type="password"
             autoComplete="new-password"
             required
+            aria-invalid={fieldErrors.password ? true : undefined}
+            aria-describedby={fieldErrors.password ? 'password-error' : undefined}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          {fieldErrors.password && <span className={styles.fieldError}>{fieldErrors.password}</span>}
+          {fieldErrors.password && (
+            <span id="password-error" className={styles.fieldError}>
+              {fieldErrors.password}
+            </span>
+          )}
         </div>
 
         <button type="submit" className={styles.submit} disabled={isSubmitting}>

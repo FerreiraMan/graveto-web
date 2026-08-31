@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from './useAuth'
 import { ApiError } from '../../shared/api/errors'
+import { isValidEmail } from './validation'
 import styles from './AuthForm.module.css'
 
 export function LoginPage() {
@@ -15,6 +16,12 @@ export function LoginPage() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setError(null)
+
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid email address.')
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -29,7 +36,7 @@ export function LoginPage() {
 
   return (
     <div className={styles.page}>
-      <form className={styles.form} onSubmit={handleSubmit}>
+      <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <h1 className={styles.title}>Log in</h1>
 
         {error && (

@@ -22,3 +22,7 @@
 .nav a.active {
   color: var(--color-accent);
 }
+
+.logout {
+  margin-left: auto;
+}

@@ -1,0 +1,75 @@
+/* Design tokens (--color-*) are declared globally in index.css.
+ * Shared by the hub page and the top nav's logout button. */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.logout {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  animation: fadeIn 180ms ease-out;
+}
+
+.logout:hover {
+  color: var(--color-accent);
+}
+
+.logout:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.confirm {
+  display: flex;
+  align-items: baseline;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  animation: fadeIn 180ms ease-out;
+}
+
+.confirmYes,
+.confirmNo {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.confirmYes {
+  color: var(--color-danger);
+}
+
+.confirmYes:hover,
+.confirmYes:focus-visible {
+  text-decoration: underline;
+}
+
+.confirmNo {
+  color: var(--color-text-muted);
+}
+
+.confirmNo:hover,
+.confirmNo:focus-visible {
+  color: var(--color-accent);
+}
+
+.confirmYes:focus-visible,
+.confirmNo:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
