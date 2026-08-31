@@ -8,7 +8,6 @@ import { HomePage } from './HomePage'
 import { LogoutControl } from './LogoutControl'
 import { MoneyTrackerLayout } from './features/moneytracker/MoneyTrackerLayout'
 import { AccountListPage } from './features/moneytracker/accounts/AccountListPage'
-import { CreateAccountPage } from './features/moneytracker/accounts/CreateAccountPage'
 import { CategoryListPage } from './features/moneytracker/categories/CategoryListPage'
 import { CreateCategoryPage } from './features/moneytracker/categories/CreateCategoryPage'
 import { ProtectedRoute } from './routes/ProtectedRoute'
@@ -27,6 +26,16 @@ function Nav() {
   const location = useLocation()
   const [confirmingLogout, setConfirmingLogout] = useState(false)
 
+  useEffect(() => {
+    if (!confirmingLogout) return
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setConfirmingLogout(false)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [confirmingLogout])
+
   // The hub at "/" *is* the app's primary navigation (Money Tracker /
   // Portfolio / Logout as its own rows) — showing this bar there too
   // would be a second, redundant nav. It only appears once the user has
@@ -35,7 +44,7 @@ function Nav() {
   if (!isAuthenticated || location.pathname === '/') return null
 
   return (
-    <nav className={navStyles.nav}>
+    <nav className={navStyles.nav} aria-label="Main">
       <NavLink to="/" className={navLinkClassName}>
         Home
       </NavLink>
@@ -85,7 +94,6 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/moneytracker" element={<MoneyTrackerLayout />}>
                   <Route index element={<AccountListPage />} />
-                  <Route path="accounts/new" element={<CreateAccountPage />} />
                   <Route path="categories" element={<CategoryListPage />} />
                   <Route path="categories/new" element={<CreateCategoryPage />} />
                 </Route>

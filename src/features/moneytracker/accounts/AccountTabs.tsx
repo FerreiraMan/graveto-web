@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AccountOverviewSection } from './AccountOverviewSection'
 import { AccountTransactionsPanel } from '../transactions/AccountTransactionsPanel'
 import { RecurringOperationsPanel } from '../recurring/RecurringOperationsPanel'
+import styles from '../MoneyTracker.module.css'
 
 type AccountTab = 'overview' | 'transactions' | 'recurring'
 
@@ -16,10 +17,12 @@ const TABS: { id: AccountTab; label: string }[] = [
 // resets both the selected tab AND every tab's internal state in one place.
 export function AccountTabs({
   accountSid,
+  institution,
   currency,
   onTransactionMutated,
 }: {
   accountSid: string
+  institution: string
   currency: string
   onTransactionMutated: () => void
 }) {
@@ -27,11 +30,14 @@ export function AccountTabs({
 
   return (
     <div>
-      <nav>
+      <h2 className={styles.detailHeading}>{institution}</h2>
+
+      <nav className={styles.accountTabs}>
         {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
+            className={`${styles.accountTab} ${activeTab === tab.id ? styles.accountTabActive : ''}`}
             onClick={() => setActiveTab(tab.id)}
             aria-current={activeTab === tab.id ? 'true' : undefined}
           >

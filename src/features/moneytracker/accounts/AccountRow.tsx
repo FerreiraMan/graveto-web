@@ -1,8 +1,16 @@
 import { useState } from 'react'
 import { addMember, closeAccount, fetchAccount } from './api'
-import { MEMBERSHIP_ROLES, type Account, type Membership, type MembershipRole } from './types'
+import {
+  accountStatusLabel,
+  MEMBERSHIP_ROLE_LABELS,
+  MEMBERSHIP_ROLES,
+  type Account,
+  type Membership,
+  type MembershipRole,
+} from './types'
 import { ApiError } from '../../../shared/api/errors'
 import { currencySymbol } from '../currency'
+import styles from '../MoneyTracker.module.css'
 
 const CLOSE_CONFIRMATION_TEXT = 'CLOSE'
 
@@ -12,13 +20,12 @@ function sortByOwnerFirst(users: Membership[]): Membership[] {
 
 interface AccountRowProps {
   account: Account
-  isSelected: boolean
+  isExpanded: boolean
   onAccountUpdated: (updated: Account) => void
-  onSelect: () => void
+  onToggle: () => void
 }
 
-export function AccountRow({ account, isSelected, onAccountUpdated, onSelect }: AccountRowProps) {
-  const [expanded, setExpanded] = useState(false)
+export function AccountRow({ account, isExpanded, onAccountUpdated, onToggle }: AccountRowProps) {
   const [details, setDetails] = useState<Account | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -33,16 +40,7 @@ export function AccountRow({ account, isSelected, onAccountUpdated, onSelect }: 
   const [memberRole, setMemberRole] = useState<MembershipRole>('CONTRIBUTOR')
   const [memberFieldErrors, setMemberFieldErrors] = useState<Record<string, string>>({})
 
-  async function toggleExpand() {
-    if (expanded) {
-      setExpanded(false)
-      return
-    }
-
-    setExpanded(true)
-
-    if (details) return
-
+  async function loadDetails() {
     setIsLoading(true)
     setError(null)
     try {
@@ -53,6 +51,15 @@ export function AccountRow({ account, isSelected, onAccountUpdated, onSelect }: 
     } finally {
       setIsLoading(false)
     }
+  }
+
+  async function handleRowClick() {
+    const wasExpanded = isExpanded
+    onToggle()
+
+    if (wasExpanded || details) return
+
+    await loadDetails()
   }
 
   async function handleClose() {
@@ -111,60 +118,83 @@ export function AccountRow({ account, isSelected, onAccountUpdated, onSelect }: 
 
   const displayedStatus = details?.status ?? account.status
   const displayedBalance = details?.balance ?? account.balance
+  const isClosed = displayedStatus !== 'ACTIVE'
 
   return (
     <li>
       <button
         type="button"
-        onClick={onSelect}
-        aria-pressed={isSelected}
-        style={{ fontWeight: isSelected ? 'bold' : 'normal' }}
+        className={`${styles.row} ${isExpanded ? styles.rowSelected : ''}`}
+        onClick={handleRowClick}
+        aria-expanded={isExpanded}
       >
-        {account.institution} — {displayedBalance}
-        {currencySymbol(account.baseCurrency)} ({displayedStatus})
-      </button>
-      <button type="button" onClick={toggleExpand}>
-        {expanded ? 'Hide details' : 'Manage'}
+        <span className={styles.rowText}>
+          <span className={styles.rowLabel}>{account.institution}</span>
+          <span className={styles.rowBalance}>
+            {displayedBalance}
+            {currencySymbol(account.baseCurrency)}
+          </span>
+        </span>
+        <span className={styles.rowMeta}>
+          {isClosed && <span className={styles.badge}>{accountStatusLabel(displayedStatus)}</span>}
+          <span className={styles.chevron} aria-hidden="true">
+            {isExpanded ? '▾' : '▸'}
+          </span>
+        </span>
       </button>
 
-      {expanded && (
-        <div>
-          {isLoading && <p>Loading…</p>}
-          {error && <p role="alert">{error}</p>}
+      {isExpanded && (
+        <div className={styles.managePanel}>
+          {isLoading && <p className={styles.mutedText}>Loading…</p>}
+          {error && (
+            <p className={styles.errorText} role="alert">
+              {error}{' '}
+              <button type="button" className={styles.linkButton} onClick={loadDetails}>
+                Retry
+              </button>
+            </p>
+          )}
           {details && (
             <>
-              <ul>
-                <li>SID: {details.sid}</li>
-                <li>Balance: {details.balance}{currencySymbol(details.baseCurrency)}</li>
-                <li>Status: {details.status}</li>
-                <li>Institution: {details.institution}</li>
+              <ul className={styles.detailList}>
                 <li>
-                  Users:
-                  <ul>
+                  <strong>Balance:</strong> {details.balance}
+                  {currencySymbol(details.baseCurrency)}
+                </li>
+                <li>
+                  <strong>Status:</strong> {accountStatusLabel(details.status)}
+                </li>
+                <li>
+                  <strong>Users</strong>
+                  <ul className={styles.userList}>
                     {sortByOwnerFirst(details.users).map((user) => (
                       <li key={user.sid}>
-                        {user.email ?? user.sid} — {user.role}
+                        {user.email ?? user.sid} —{' '}
+                        {user.role in MEMBERSHIP_ROLE_LABELS
+                          ? MEMBERSHIP_ROLE_LABELS[user.role as MembershipRole]
+                          : user.role}
                       </li>
                     ))}
                   </ul>
                 </li>
               </ul>
 
-              {!isAddingMember && (
-                <button type="button" onClick={() => setIsAddingMember(true)}>
-                  Add member
-                </button>
-              )}
-
-              {details.status !== 'CLOSED' && !isConfirmingClose && (
-                <button type="button" onClick={() => setIsConfirmingClose(true)}>
-                  Close account
-                </button>
+              {!isAddingMember && !isConfirmingClose && (
+                <div className={styles.actionRow}>
+                  <button type="button" className={styles.linkButton} onClick={() => setIsAddingMember(true)}>
+                    Add member
+                  </button>
+                  {details.status !== 'CLOSED' && (
+                    <button type="button" className={styles.dangerButton} onClick={() => setIsConfirmingClose(true)}>
+                      Close account
+                    </button>
+                  )}
+                </div>
               )}
 
               {isAddingMember && (
-                <div>
-                  <div>
+                <div className={styles.inlineForm}>
+                  <div className={styles.field}>
                     <label htmlFor={`member-email-${account.sid}`}>Email</label>
                     <input
                       id={`member-email-${account.sid}`}
@@ -172,10 +202,10 @@ export function AccountRow({ account, isSelected, onAccountUpdated, onSelect }: 
                       value={memberEmail}
                       onChange={(e) => setMemberEmail(e.target.value)}
                     />
-                    {memberFieldErrors.email && <span>{memberFieldErrors.email}</span>}
+                    {memberFieldErrors.email && <span className={styles.fieldError}>{memberFieldErrors.email}</span>}
                   </div>
 
-                  <div>
+                  <div className={styles.field}>
                     <label htmlFor={`member-role-${account.sid}`}>Role</label>
                     <select
                       id={`member-role-${account.sid}`}
@@ -188,24 +218,37 @@ export function AccountRow({ account, isSelected, onAccountUpdated, onSelect }: 
                         </option>
                       ))}
                     </select>
-                    {memberFieldErrors.role && <span>{memberFieldErrors.role}</span>}
+                    {memberFieldErrors.role && <span className={styles.fieldError}>{memberFieldErrors.role}</span>}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleAddMember}
-                    disabled={isSubmittingMember || memberEmail.trim() === ''}
-                  >
-                    {isSubmittingMember ? 'Adding…' : 'Confirm add member'}
-                  </button>
-                  <button type="button" onClick={cancelAddMember} disabled={isSubmittingMember}>
-                    Cancel
-                  </button>
+                  <div className={styles.formActions}>
+                    <button
+                      type="button"
+                      className={styles.primaryButton}
+                      onClick={handleAddMember}
+                      disabled={isSubmittingMember || memberEmail.trim() === ''}
+                    >
+                      {isSubmittingMember ? 'Adding…' : 'Confirm add member'}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={cancelAddMember}
+                      disabled={isSubmittingMember}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               )}
 
+              {/* Deliberately heavier than a Yes/Cancel confirm: closing an
+               * account is much harder to undo than logging out, so it asks
+               * for a typed match rather than one click — kept even though
+               * the rest of the app's destructive actions use a lighter
+               * pattern (see LogoutControl). */}
               {isConfirmingClose && (
-                <div>
+                <div className={styles.closeConfirm}>
                   <label htmlFor={`confirm-close-${account.sid}`}>
                     Type "{CLOSE_CONFIRMATION_TEXT}" to confirm closing this account
                   </label>
@@ -216,16 +259,24 @@ export function AccountRow({ account, isSelected, onAccountUpdated, onSelect }: 
                     onChange={(e) => setConfirmationText(e.target.value)}
                     autoComplete="off"
                   />
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    disabled={isClosing || confirmationText !== CLOSE_CONFIRMATION_TEXT}
-                  >
-                    {isClosing ? 'Closing…' : 'Confirm close'}
-                  </button>
-                  <button type="button" onClick={cancelClose} disabled={isClosing}>
-                    Cancel
-                  </button>
+                  <div className={styles.formActions}>
+                    <button
+                      type="button"
+                      className={styles.dangerConfirmButton}
+                      onClick={handleClose}
+                      disabled={isClosing || confirmationText !== CLOSE_CONFIRMATION_TEXT}
+                    >
+                      {isClosing ? 'Closing…' : 'Confirm close'}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={cancelClose}
+                      disabled={isClosing}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               )}
             </>

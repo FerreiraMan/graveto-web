@@ -1,0 +1,516 @@
+/* Design tokens (--color-*) are declared globally in index.css.
+ *
+ * Shared across the Money Tracker module's landing surface: the domain
+ * tab bar (Accounts / Categories), the account list + two-pane layout,
+ * account rows, and the per-account tab bar (Overview / Transactions /
+ * Recurring operations). One design system applied consistently — the
+ * link/active-state treatment mirrors Nav.module.css's; the background
+ * is deliberately one step darker (--color-ground vs. the top Nav's
+ * --color-surface) so the two stacked nav levels read as a hierarchy
+ * rather than one flat bar — the same lightness-step convention DESIGN.md
+ * already uses for surface-vs-ground depth, applied to navigation instead
+ * of panels. Rows mirror HomePage.module.css's list rows.
+ */
+
+.tabs {
+  background: var(--color-ground);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.tabs a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 0.9375rem;
+}
+
+.tabs a:hover {
+  color: var(--color-accent);
+}
+
+.tabs a.active {
+  color: var(--color-accent);
+}
+
+.tabs a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.content {
+  padding: 1.5rem;
+}
+
+/* Account list page: two-pane layout, side by side at every width. */
+
+.layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.listColumn {
+  flex: 0 0 360px;
+  min-width: 0;
+}
+
+.detailColumn {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pageHeader {
+  margin-bottom: 1rem;
+}
+
+/* Visually hidden but present for screen readers — used where a heading is
+ * structurally required (one per view) but the visible tab bar above
+ * already names the section, so repeating it on-screen would be noise. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.errorText {
+  color: var(--color-danger);
+  font-size: 0.875rem;
+}
+
+.mutedText {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.list li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+/* Account row */
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: none;
+  border: none;
+  font-family: inherit;
+  text-align: left;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.row:hover,
+.row:focus-visible {
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.rowSelected {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.rowLabel {
+  font-size: 1rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.rowBalance {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.rowMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-shrink: 0;
+}
+
+.badge {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  white-space: nowrap;
+}
+
+.chevron {
+  font-size: 1.25rem;
+  color: var(--color-text-muted);
+  line-height: 1;
+}
+
+.row:hover .chevron,
+.row:focus-visible .chevron {
+  color: var(--color-accent);
+}
+
+.managePanel {
+  padding: 1.125rem 1.25rem 1.375rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-ground);
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.detailList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.detailList strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.userList {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.actionRow {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.linkButton:hover,
+.linkButton:focus-visible {
+  text-decoration: underline;
+}
+
+.linkButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.dangerButton {
+  background: none;
+  border: none;
+  color: var(--color-danger);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.dangerButton:hover,
+.dangerButton:focus-visible {
+  text-decoration: underline;
+}
+
+.dangerButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.inlineForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.field input,
+.field select {
+  background: var(--color-ground);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text);
+  padding: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+
+/* type="number" spinner arrows render with browser-default chrome (white,
+ * boxed) that ignores background/color and clashes hard against the dark
+ * ground — hidden since typing digits is the natural interaction for a
+ * currency amount, not incrementing by 1. */
+.field input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+.field input[type='number']::-webkit-outer-spin-button,
+.field input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.field input:focus-visible,
+.field select:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.fieldError {
+  color: var(--color-danger);
+  font-size: 0.75rem;
+}
+
+.formActions {
+  display: flex;
+  gap: 0.625rem;
+}
+
+.primaryButton {
+  background: var(--color-accent);
+  color: var(--color-ground);
+  border: none;
+  border-radius: 4px;
+  padding: 0.4375rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.primaryButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  border-radius: 4px;
+  padding: 0.4375rem 0.75rem;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.secondaryButton:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.secondaryButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Close-account confirmation: deliberately heavier than the logout
+ * confirm/cancel pattern — a type-to-confirm text match, not a single
+ * click — because closing an account is a much higher-stakes, harder to
+ * undo action than logging out. Same tokens as everything else, but the
+ * interaction weight is intentionally not downgraded to match. */
+.closeConfirm {
+  padding: 0.75rem;
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface));
+  border: 1px solid var(--color-danger);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.closeConfirm label {
+  font-size: 0.8125rem;
+  color: var(--color-text);
+}
+
+.closeConfirm input {
+  background: var(--color-ground);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text);
+  padding: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+
+.closeConfirm input:focus-visible {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 1px;
+}
+
+.dangerConfirmButton {
+  background: var(--color-danger);
+  color: var(--color-ground);
+  border: none;
+  border-radius: 4px;
+  padding: 0.4375rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.dangerConfirmButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-danger) 85%, white);
+}
+
+.dangerConfirmButton:focus-visible {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 2px;
+}
+
+.dangerConfirmButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Per-account tab bar (Overview / Transactions / Recurring operations) —
+ * same color-only active/inactive treatment as .tabs above and the top
+ * Nav, not a new underline pattern. */
+
+.detailHeading {
+  margin: 0 0 1rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.accountTabs {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.accountTab {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.accountTab:hover {
+  color: var(--color-accent);
+}
+
+.accountTab:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.accountTabActive {
+  color: var(--color-accent);
+}
+
+/* Create-account modal: the app's only overlay dialog (everywhere else,
+ * see LogoutControl, favors an inline confirmation over one). The panel
+ * itself stays flat and token-based like every other surface — no
+ * box-shadow — the backdrop dim is what separates it from the page. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 60%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 100;
+}
+
+.modal {
+  width: 100%;
+  max-width: 400px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
