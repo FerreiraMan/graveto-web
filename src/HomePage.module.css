@@ -39,6 +39,7 @@
   font-size: 1.375rem;
   font-weight: 600;
   color: var(--color-text);
+  animation: fadeIn 180ms ease-out;
 }
 
 /* Same box as .title but visually collapsed to zero width during logout
@@ -60,35 +61,6 @@
   color: transparent;
 }
 
-.logout {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-  font-family: inherit;
-  cursor: pointer;
-  padding: 0;
-  animation: fadeIn 180ms ease-out;
-}
-
-.logout:hover {
-  color: var(--color-accent);
-}
-
-.logout:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-.logoutConfirm {
-  display: flex;
-  align-items: baseline;
-  gap: 0.625rem;
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  animation: fadeIn 180ms ease-out;
-}
-
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -96,41 +68,6 @@
   to {
     opacity: 1;
   }
-}
-
-.logoutConfirmYes,
-.logoutConfirmNo {
-  background: none;
-  border: none;
-  font-family: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-}
-
-.logoutConfirmYes {
-  color: var(--color-danger);
-}
-
-.logoutConfirmYes:hover,
-.logoutConfirmYes:focus-visible {
-  text-decoration: underline;
-}
-
-.logoutConfirmNo {
-  color: var(--color-text-muted);
-}
-
-.logoutConfirmNo:hover,
-.logoutConfirmNo:focus-visible {
-  color: var(--color-accent);
-}
-
-.logoutConfirmYes:focus-visible,
-.logoutConfirmNo:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
 }
 
 .list {
