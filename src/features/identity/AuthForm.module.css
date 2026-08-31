@@ -48,6 +48,14 @@
   color: var(--color-text);
 }
 
+.successTitle {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: center;
+}
+
 .field {
   display: flex;
   flex-direction: column;

@@ -1,9 +1,11 @@
-import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { AuthProvider } from './features/identity/AuthContext'
 import { useAuth } from './features/identity/useAuth'
 import { LoginPage } from './features/identity/LoginPage'
 import { RegisterPage } from './features/identity/RegisterPage'
+import { HomePage } from './HomePage'
+import { LogoutControl } from './LogoutControl'
 import { MoneyTrackerLayout } from './features/moneytracker/MoneyTrackerLayout'
 import { AccountListPage } from './features/moneytracker/accounts/AccountListPage'
 import { CreateAccountPage } from './features/moneytracker/accounts/CreateAccountPage'
@@ -16,30 +18,21 @@ import { useNotifications } from './shared/components/useNotifications'
 import { registerGlobalErrorHandlers } from './shared/api/errorHandlers'
 import navStyles from './Nav.module.css'
 
-function Home() {
-  const { logout } = useAuth()
-  return (
-    <div>
-      <p>Graveto — pick a section above.</p>
-      <button type="button" onClick={logout}>
-        Log out
-      </button>
-    </div>
-  )
-}
-
 function navLinkClassName({ isActive }: { isActive: boolean }): string {
   return isActive ? navStyles.active : ''
 }
 
 function Nav() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, logout } = useAuth()
+  const location = useLocation()
+  const [confirmingLogout, setConfirmingLogout] = useState(false)
 
-  // Nothing here is reachable while logged out — Home/Money Tracker/
-  // Portfolio all sit behind ProtectedRoute and just bounce back to
-  // /login — and the auth pages already offer their own Log in/Register
-  // switch link. Showing the nav there is dead links, not navigation.
-  if (!isAuthenticated) return null
+  // The hub at "/" *is* the app's primary navigation (Money Tracker /
+  // Portfolio / Logout as its own rows) — showing this bar there too
+  // would be a second, redundant nav. It only appears once the user has
+  // picked a feature, so they can jump straight to another one or log
+  // out without detouring back through the hub first.
+  if (!isAuthenticated || location.pathname === '/') return null
 
   return (
     <nav className={navStyles.nav}>
@@ -49,9 +42,13 @@ function Nav() {
       <NavLink to="/moneytracker" className={navLinkClassName}>
         Money Tracker
       </NavLink>
-      <NavLink to="/portfolio" className={navLinkClassName}>
-        Portfolio
-      </NavLink>
+      <LogoutControl
+        className={navStyles.logout}
+        confirming={confirmingLogout}
+        onRequestConfirm={() => setConfirmingLogout(true)}
+        onCancel={() => setConfirmingLogout(false)}
+        onLogout={logout}
+      />
     </nav>
   )
 }
@@ -85,7 +82,7 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route element={<ProtectedRoute />}>
-                <Route path="/" element={<Home />} />
+                <Route path="/" element={<HomePage />} />
                 <Route path="/moneytracker" element={<MoneyTrackerLayout />}>
                   <Route index element={<AccountListPage />} />
                   <Route path="accounts/new" element={<CreateAccountPage />} />
