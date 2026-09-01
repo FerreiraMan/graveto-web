@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { addMember, closeAccount, fetchAccount } from './api'
 import {
   accountStatusLabel,
@@ -52,6 +52,16 @@ export function AccountRow({ account, isExpanded, onAccountUpdated, onToggle }: 
       setIsLoading(false)
     }
   }
+
+  // The parent refetches the account list after any mutation that affects
+  // balance — transactions and transfers included — but that only reaches
+  // this row through the `account` prop, not through the locally-fetched
+  // `details` (loaded once when the row first expands). Without this,
+  // `details.balance` would win over a fresher `account.balance` forever
+  // once a row had been opened even a single time.
+  useEffect(() => {
+    setDetails((current) => (current === null ? current : account))
+  }, [account])
 
   async function handleRowClick() {
     const wasExpanded = isExpanded
@@ -228,7 +238,7 @@ export function AccountRow({ account, isExpanded, onAccountUpdated, onToggle }: 
                       onClick={handleAddMember}
                       disabled={isSubmittingMember || memberEmail.trim() === ''}
                     >
-                      {isSubmittingMember ? 'Adding…' : 'Confirm add member'}
+                      {isSubmittingMember ? 'Adding…' : 'Add'}
                     </button>
                     <button
                       type="button"
@@ -266,7 +276,7 @@ export function AccountRow({ account, isExpanded, onAccountUpdated, onToggle }: 
                       onClick={handleClose}
                       disabled={isClosing || confirmationText !== CLOSE_CONFIRMATION_TEXT}
                     >
-                      {isClosing ? 'Closing…' : 'Confirm close'}
+                      {isClosing ? 'Closing…' : 'Confirm'}
                     </button>
                     <button
                       type="button"

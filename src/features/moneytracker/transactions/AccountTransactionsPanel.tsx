@@ -5,13 +5,22 @@ import { ALL_TRANSACTION_TYPES, TRANSACTION_TYPE_LABELS, type Category, type Tra
 import { ApiError } from '../../../shared/api/errors'
 import { currencySymbol } from '../currency'
 import { fetchTransactions } from './api'
-import { TRANSACTION_STATUS_LABELS, isTransferLeg, type Transaction, type TransactionFilterRequest, type TransactionStatus } from './types'
+import {
+  TRANSACTION_STATUS_LABELS,
+  formatAmount,
+  isTransferLeg,
+  transactionPolarity,
+  type Transaction,
+  type TransactionFilterRequest,
+  type TransactionStatus,
+} from './types'
 import { groupByParent } from '../categories/categoryTree'
 import { CreateTransactionForm } from './CreateTransactionForm'
 import { CreateTransferForm } from '../transfers/CreateTransferForm'
 import { UpdateTransactionForm } from './UpdateTransactionForm'
 import { UpdateTransferForm } from '../transfers/UpdateTransferForm'
 import { TransactionRowMenu } from './TransactionRowMenu'
+import styles from '../MoneyTracker.module.css'
 
 const TRANSACTION_STATUSES: TransactionStatus[] = ['ACTIVE', 'DELETED']
 const PAGE_SIZE = 20
@@ -41,6 +50,7 @@ export function AccountTransactionsPanel({
 
   const [transactions, setTransactions] = useState<Transaction[] | null>(null)
   const [totalPages, setTotalPages] = useState(0)
+  const [totalElements, setTotalElements] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
   // Every filter change (except page itself) should reset back to page 0 —
@@ -76,6 +86,7 @@ export function AccountTransactionsPanel({
         if (cancelled) return
         setTransactions(result.content)
         setTotalPages(result.totalPages)
+        setTotalElements(result.totalElements)
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof ApiError ? err.message : 'Failed to load transactions.')
@@ -97,7 +108,9 @@ export function AccountTransactionsPanel({
 
   return (
     <div>
-      <h2>Transactions</h2>
+      <h2 id="transactions-heading" className={styles.srOnly}>
+        Transactions
+      </h2>
 
       <div>
         <button type="button" onClick={() => setCreateMenuOpen((open) => !open)} aria-expanded={createMenuOpen}>
@@ -230,61 +243,93 @@ export function AccountTransactionsPanel({
       {transactions !== null && transactions.length === 0 && <p>No transactions found.</p>}
 
       {transactions !== null && transactions.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Description</th>
-              <th>Category</th>
-              <th>Type</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.map((transaction) => (
-              <tr key={transaction.sid}>
-                <td>{transaction.occurredAt.slice(0, 10)}</td>
-                <td>{transaction.description ?? '—'}</td>
-                <td>{transaction.category.name}</td>
-                <td>{TRANSACTION_TYPE_LABELS[transaction.type]}</td>
-                <td>
-                  {transaction.amount}
-                  {currencySymbol(transaction.currency)}
-                </td>
-                <td>{TRANSACTION_STATUS_LABELS[transaction.status]}</td>
-                <td>
-                  <TransactionRowMenu
-                    transaction={transaction}
-                    accountSid={accountSid}
-                    isOpen={openMenuSid === transaction.sid}
-                    onOpenChange={(isOpen) => {
-                      setOpenMenuSid(isOpen ? transaction.sid : null)
-                      if (isOpen) setEditingTransaction(null)
-                    }}
-                    onEdit={() => setEditingTransaction(transaction)}
-                    onDeleted={handleMutated}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          <p className={styles.mutedText}>
+            {totalElements} {totalElements === 1 ? 'transaction' : 'transactions'}
+          </p>
+
+          <div className={styles.tableScroll}>
+            <table className={styles.transactionsTable} aria-labelledby="transactions-heading">
+              <colgroup>
+                <col className={styles.colDate} />
+                <col className={styles.colDescription} />
+                <col className={styles.colCategory} />
+                <col className={styles.colType} />
+                <col className={styles.colAmount} />
+                <col className={styles.colStatus} />
+                <col className={styles.colActions} />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Description</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Type</th>
+                  <th scope="col" className={styles.amountHeader}>
+                    Amount
+                  </th>
+                  <th scope="col">Status</th>
+                  <th scope="col">
+                    <span className={styles.srOnly}>Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody key={page}>
+                {transactions.map((transaction) => {
+                  const polarity = transactionPolarity(transaction.type)
+                  const isDeleted = transaction.status === 'DELETED'
+                  const amountClassName =
+                    polarity === 'gain' ? styles.amountGain : polarity === 'loss' ? styles.amountLoss : ''
+                  const sign = polarity === 'gain' ? '+' : polarity === 'loss' ? '−' : ''
+
+                  return (
+                    <tr key={transaction.sid} className={isDeleted ? styles.transactionRowDeleted : ''}>
+                      <td>{transaction.occurredAt.slice(0, 10)}</td>
+                      <td>{transaction.description ?? '—'}</td>
+                      <td>{transaction.category.name}</td>
+                      <td>{TRANSACTION_TYPE_LABELS[transaction.type]}</td>
+                      <td className={`${styles.amountCell} ${amountClassName}`}>
+                        {sign}
+                        {formatAmount(transaction.amount)} {currencySymbol(transaction.currency)}
+                      </td>
+                      <td>{TRANSACTION_STATUS_LABELS[transaction.status]}</td>
+                      <td className={styles.actionsCell}>
+                        <TransactionRowMenu
+                          transaction={transaction}
+                          accountSid={accountSid}
+                          isOpen={openMenuSid === transaction.sid}
+                          onOpenChange={(isOpen) => {
+                            setOpenMenuSid(isOpen ? transaction.sid : null)
+                            if (isOpen) setEditingTransaction(null)
+                          }}
+                          onEdit={() => setEditingTransaction(transaction)}
+                          onDeleted={handleMutated}
+                        />
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {transactions !== null && totalPages > 1 && (
-        <div>
-          <button type="button" onClick={() => setPage((p) => p - 1)} disabled={page === 0}>
-            Previous
-          </button>
-          <span>
-            {' '}
-            Page {page + 1} of {totalPages}{' '}
+        <div className={styles.pagination}>
+          {page > 0 && (
+            <button type="button" className={styles.linkButton} onClick={() => setPage((p) => p - 1)}>
+              Previous
+            </button>
+          )}
+          <span aria-live="polite">
+            Page {page + 1} of {totalPages}
           </span>
-          <button type="button" onClick={() => setPage((p) => p + 1)} disabled={page + 1 >= totalPages}>
-            Next
-          </button>
+          {page + 1 < totalPages && (
+            <button type="button" className={styles.linkButton} onClick={() => setPage((p) => p + 1)}>
+              Next
+            </button>
+          )}
         </div>
       )}
     </div>

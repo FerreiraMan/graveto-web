@@ -17,4 +17,11 @@ body {
   --color-accent: #3fb8af;
   --color-accent-hover: #55c9c0;
   --color-danger: #e0685f;
+  /* Financial polarity — a dedicated signal per DESIGN.md, never reused for
+   * general UI accenting (kept separate from --color-danger even though it
+   * shares the same hex as --color-loss today: "danger" means destructive
+   * action, "loss" means expense — different meanings, same token would
+   * blur them). */
+  --color-gain: #4caf82;
+  --color-loss: #e0685f;
 }

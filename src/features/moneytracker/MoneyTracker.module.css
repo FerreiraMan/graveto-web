@@ -275,6 +275,22 @@
   gap: 0.25rem;
 }
 
+/* Groups initial balance + currency on one row — they're one fact (the
+ * account's starting money), distinct from naming the account above them.
+ * Reuses .field for each half; this only adds the row layout. */
+.fieldRow {
+  display: flex;
+  gap: 0.875rem;
+}
+
+.fieldRow .field:first-child {
+  flex: 2;
+}
+
+.fieldRow .field:last-child {
+  flex: 1;
+}
+
 .field label {
   font-size: 0.75rem;
   color: var(--color-text-muted);
@@ -479,6 +495,26 @@
  * itself stays flat and token-based like every other surface — no
  * box-shadow — the backdrop dim is what separates it from the page. */
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .overlay {
   position: fixed;
   inset: 0;
@@ -488,6 +524,7 @@
   justify-content: center;
   padding: 1.5rem;
   z-index: 100;
+  animation: fadeIn 180ms ease-out;
 }
 
 .modal {
@@ -500,6 +537,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  animation: modalIn 180ms ease-out;
 }
 
 .modalTitle {
@@ -513,4 +551,311 @@
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
+}
+
+/* Transaction list: a dense, scannable ledger table — rows are tighter
+ * than .row (that's a touch-sized expandable account row; this is pure
+ * tabular scanning where more rows visible at once matters more than
+ * touch targets). Amount color follows the Financial Polarity tokens
+ * (--color-gain / --color-loss) defined in index.css — a dedicated signal
+ * per DESIGN.md, kept separate from --color-accent's interactive-only use. */
+
+/* Lets the table scroll horizontally on narrow viewports instead of
+ * clipping or crushing columns — the table itself keeps its natural
+ * width, this just contains the overflow. */
+.tableScroll {
+  overflow-x: auto;
+}
+
+.transactionsTable {
+  width: 100%;
+  min-width: 45rem;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+/* Fixed column widths (via <colgroup>) keep the layout stable across pages
+ * — with auto layout, a page whose rows happen to have longer/shorter
+ * content in one column shifts every column's width, which reads as the
+ * table "jumping" on every Previous/Next click. Description is capped
+ * rather than left to flex freely — an unconstrained flex column absorbs
+ * all leftover width on wide screens, crowding every column after it
+ * (Amount especially) into a narrow strip at the right edge. */
+.colDate {
+  width: 6.5rem;
+}
+
+.colDescription {
+  width: 16rem;
+}
+
+.colCategory {
+  width: 8rem;
+}
+
+.colType {
+  width: 6rem;
+}
+
+.colAmount {
+  width: 9rem;
+}
+
+.colStatus {
+  width: 5rem;
+}
+
+.colActions {
+  width: 2.5rem;
+}
+
+.transactionsTable th {
+  text-align: left;
+  padding: 0.375rem 0.5rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
+  font-size: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.transactionsTable th.amountHeader {
+  text-align: right;
+}
+
+.transactionsTable td {
+  padding: 0.375rem 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The actions cell holds the row menu's popover, which needs to render
+ * outside the cell's bounds — the truncation styles above exist for text
+ * columns, not this one. */
+.transactionsTable td.actionsCell {
+  overflow: visible;
+  white-space: normal;
+}
+
+/* Amount is right-aligned with tabular figures so digits line up down the
+ * column for magnitude comparison — every other column stays left-aligned
+ * (the default), this is the one column whose job is quantity, not label
+ * scanning. */
+.amountCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Amount carries the financial-polarity signal, reinforced by a leading
+ * +/- sign (added in markup, not content: ""), so meaning doesn't rely on
+ * color alone. Qualified with the element/table ancestor so specificity
+ * beats the plain ".transactionsTable td" color rule above. */
+.transactionsTable td.amountGain {
+  color: var(--color-gain);
+}
+
+.transactionsTable td.amountLoss {
+  color: var(--color-loss);
+}
+
+.transactionsTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Every Previous/Next click refetches and replaces the whole row set —
+ * without this, the table clears and repopulates with zero transition,
+ * which reads as an abrupt "pop" even though the operation itself is
+ * fast. A short fade acknowledges the page changed without adding
+ * perceptible delay to a routine, frequently-repeated action. */
+.transactionsTable tbody {
+  animation: fadeIn 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transactionsTable tbody {
+    animation: none;
+  }
+}
+
+/* Deleted rows stay in the list (filterable, not hidden) but the Status
+ * column alone isn't a strong enough visual cue that the record is void
+ * rather than merely de-emphasized — muted-grey is the same visual
+ * language DESIGN.md already uses for secondary/rollup values, which
+ * means something different (still real, just less important). A strike
+ * reads unambiguously as "this didn't happen," which muting alone doesn't. */
+.transactionRowDeleted td {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.transactionsTable tr.transactionRowDeleted td.amountGain,
+.transactionsTable tr.transactionRowDeleted td.amountLoss {
+  color: var(--color-text-muted);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+/* Transaction row menu: this app's first floating popover — everywhere
+ * else expands inline (see AccountRow's manage panel) or uses the one
+ * modal, but an inline expansion here would shift every row below it,
+ * undermining the transaction table's density. Anchored to the trigger,
+ * dismissed by click-outside or Escape (handled in the component) — no
+ * overlay, no focus trap, no scroll lock: a popover, not a modal. */
+
+.rowMenuContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.rowMenuTrigger {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+}
+
+.rowMenuTrigger:hover {
+  color: var(--color-accent);
+}
+
+/* Anchors the open state visually to its source — otherwise the trigger
+ * looks idle while its popover (spatially detached via the portal) is
+ * open. */
+.rowMenuTriggerActive {
+  color: var(--color-accent);
+}
+
+.rowMenuTrigger:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.rowMenuPopover {
+  position: fixed;
+  z-index: 10;
+  min-width: 9rem;
+  max-width: 16rem;
+  max-height: min(70vh, 20rem);
+  overflow-y: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.375rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  font-size: 0.8125rem;
+  animation: fadeIn 120ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rowMenuPopover {
+    animation: none;
+  }
+}
+
+.rowMenuItems {
+  display: flex;
+  flex-direction: column;
+}
+
+.rowMenuItem,
+.rowMenuItemDanger {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+  padding: 0.375rem 0.5rem;
+  border-radius: 4px;
+  color: var(--color-text);
+}
+
+.rowMenuItem:hover,
+.rowMenuItem:focus-visible {
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+}
+
+.rowMenuItemDanger {
+  color: var(--color-danger);
+}
+
+.rowMenuItemDanger:hover,
+.rowMenuItemDanger:focus-visible {
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+}
+
+.rowMenuItem:focus-visible,
+.rowMenuItemDanger:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+/* Delete confirm swaps the menu items for a Yes/Cancel pair, matching
+ * LogoutControl's weight (plain text, danger-red confirm, muted cancel) —
+ * deleting a transaction is real but reversible-as-data, so this starts
+ * at the lighter end of the app's two confirmation patterns rather than
+ * AccountRow's heavier type-to-confirm. */
+.rowMenuConfirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  color: var(--color-text-muted);
+  animation: fadeIn 120ms ease-out;
+}
+
+.rowMenuConfirm > span {
+  font-size: 0.8125rem;
+}
+
+.rowMenuConfirmYes,
+.rowMenuConfirmNo {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+}
+
+.rowMenuConfirmYes {
+  color: var(--color-danger);
+}
+
+.rowMenuConfirmYes:hover,
+.rowMenuConfirmYes:focus-visible {
+  text-decoration: underline;
+}
+
+.rowMenuConfirmNo {
+  color: var(--color-text-muted);
+}
+
+.rowMenuConfirmNo:hover,
+.rowMenuConfirmNo:focus-visible {
+  color: var(--color-accent);
+}
+
+.rowMenuConfirmYes:focus-visible,
+.rowMenuConfirmNo:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }

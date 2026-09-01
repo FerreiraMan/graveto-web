@@ -34,6 +34,25 @@ export function isTransferLeg(transaction: Transaction): boolean {
   return Boolean(transaction.correlationId) || TRANSFER_TYPES.has(transaction.type)
 }
 
+// Financial polarity for display (DESIGN.md: a dedicated gain/loss signal,
+// never the general accent color). Transfers move money between the
+// user's own accounts — neither a gain nor a loss — and an opening
+// balance is a starting snapshot, not a flow event, so both stay neutral.
+export type FinancialPolarity = 'gain' | 'loss' | 'neutral'
+
+export function transactionPolarity(type: TransactionType): FinancialPolarity {
+  if (type === 'INCOME') return 'gain'
+  if (type === 'EXPENSE') return 'loss'
+  return 'neutral'
+}
+
+// Fixed 2-decimal, thousands-separated formatting for scanning a column of
+// money — the raw JS number (e.g. "1234.5") doesn't align or compare well
+// down a column, or read clearly in a confirm prompt.
+export function formatAmount(amount: number): string {
+  return amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 export interface TransactionFilterRequest {
   accountSid: string
   categorySid?: string
