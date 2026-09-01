@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fetchAllAccounts } from './api'
 import { AccountRow } from './AccountRow'
 import { CreateAccountModal } from './CreateAccountModal'
@@ -13,6 +13,7 @@ export function AccountListPage() {
   const [selectedAccountSid, setSelectedAccountSid] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const [isCreating, setIsCreating] = useState(false)
+  const createButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -57,7 +58,12 @@ export function AccountListPage() {
         <h1 className={styles.srOnly}>Accounts</h1>
 
         <div className={styles.pageHeader}>
-          <button type="button" className={styles.primaryButton} onClick={() => setIsCreating(true)}>
+          <button
+            type="button"
+            ref={createButtonRef}
+            className={styles.primaryButton}
+            onClick={() => setIsCreating(true)}
+          >
             Create account
           </button>
         </div>
@@ -108,11 +114,15 @@ export function AccountListPage() {
 
       {isCreating && (
         <CreateAccountModal
-          onClose={() => setIsCreating(false)}
+          onClose={() => {
+            setIsCreating(false)
+            createButtonRef.current?.focus()
+          }}
           onCreated={(created) => {
             setAccounts((current) => (current === null ? [created] : [...current, created]))
             setSelectedAccountSid(created.sid)
             setIsCreating(false)
+            createButtonRef.current?.focus()
           }}
         />
       )}
