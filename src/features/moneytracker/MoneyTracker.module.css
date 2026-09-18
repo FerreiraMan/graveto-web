@@ -24,13 +24,21 @@
   color: var(--color-text-muted);
   text-decoration: none;
   font-size: 0.9375rem;
+  border-bottom: 2px solid transparent;
+  padding-bottom: 0.25rem;
+  transition: color 150ms ease-out, border-color 150ms ease-out;
 }
 
 .tabs a:hover {
-  color: var(--color-accent);
+  color: var(--color-text);
 }
 
 .tabs a.active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+.tabs a.active:hover {
   color: var(--color-accent);
 }
 
@@ -429,6 +437,129 @@ fieldset.field legend {
   cursor: not-allowed;
 }
 
+/* Create + Filters (+ Clear filters) sit on one row above the table —
+ * Filters/Clear read as secondary to Create, so they trail it rather
+ * than each floating on its own line disconnected from the results. */
+.transactionsToolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.75rem;
+}
+
+/* "Filters" toggle above AccountTransactionsPanel's filter panel — a
+ * pill/chip rather than .secondaryButton's rectangular outline, since
+ * this is a state toggle (panel open/closed, filter count as a badge-like
+ * suffix) rather than a form action. Fully rounded reads as "a mode
+ * you're in," not "a button you press once." */
+.filterToggle {
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 150ms ease-out, color 150ms ease-out;
+}
+
+.filterToggle:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+.filterToggle[aria-expanded='true'] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.filterToggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Compact inline filter row — each filter is its own .field (same token
+ * as every other form on this surface), wrapping onto new lines on
+ * narrow viewports rather than the panel ever scrolling horizontally.
+ * flex-basis (not a fixed width) keeps every field a stable, predictable
+ * size at normal viewports while still letting it shrink below that on
+ * narrow ones — min-width: 0 overrides the native default (min-width:
+ * auto) that native inputs/selects otherwise refuse to shrink past,
+ * which is what let this row overflow its container before. */
+.filterPanel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.filterPanel .field {
+  flex: 1 1 11rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.filterCategoryField {
+  flex-basis: 15rem;
+}
+
+.filterPresetsField {
+  flex: 1 1 auto;
+  width: auto;
+}
+
+.filterPresetsLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.filterPresets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.filterPresetChip {
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 150ms ease-out, color 150ms ease-out;
+}
+
+.filterPresetChip:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.filterPresetChip:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Empty transactions list — distinct copy + action for "filtered to
+ * zero" (offer Clear filters) vs "genuinely empty account" (offer
+ * Create), rather than one flat "No transactions found." for both.
+ * Plain text + button, no card/background — a bordered box read as too
+ * heavy for what's just an absence of rows. */
+.emptyStatePlain {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.625rem;
+  color: var(--color-text-muted);
+}
+
 /* Close-account confirmation: deliberately heavier than the logout
  * confirm/cancel pattern — a type-to-confirm text match, not a single
  * click — because closing an account is a much higher-stakes, harder to
@@ -494,31 +625,28 @@ fieldset.field legend {
  * same color-only active/inactive treatment as .tabs above and the top
  * Nav, not a new underline pattern. */
 
-.detailHeading {
-  margin: 0 0 1rem;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
 .accountTabs {
   display: flex;
   gap: 1.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .accountTab {
   background: none;
   border: none;
+  border-bottom: 2px solid transparent;
   color: var(--color-text-muted);
   font-size: 0.9375rem;
   font-family: inherit;
   cursor: pointer;
-  padding: 0;
+  padding: 0 0 0.625rem;
+  margin-bottom: -1px;
+  transition: color 150ms ease-out, border-color 150ms ease-out;
 }
 
 .accountTab:hover {
-  color: var(--color-accent);
+  color: var(--color-text);
 }
 
 .accountTab:focus-visible {
@@ -527,6 +655,11 @@ fieldset.field legend {
 }
 
 .accountTabActive {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+.accountTabActive:hover {
   color: var(--color-accent);
 }
 

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchAllCategories } from '../categories/api'
 import { CategoryPicker } from '../categories/CategoryPicker'
+import { buildCategoryTree } from '../categories/categoryTree'
 import { ALL_TRANSACTION_TYPES, TRANSACTION_TYPE_LABELS, type Category, type TransactionType } from '../categories/types'
 import { ApiError } from '../../../shared/api/errors'
+import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue'
 import { currencySymbol } from '../currency'
 import { fetchTransactions } from './api'
 import {
@@ -14,7 +16,6 @@ import {
   type TransactionFilterRequest,
   type TransactionStatus,
 } from './types'
-import { groupByParent } from '../categories/categoryTree'
 import { CreateTransactionModal } from './CreateTransactionModal'
 import { UpdateTransactionForm } from './UpdateTransactionForm'
 import { UpdateTransferForm } from '../transfers/UpdateTransferForm'
@@ -23,6 +24,52 @@ import styles from '../MoneyTracker.module.css'
 
 const TRANSACTION_STATUSES: TransactionStatus[] = ['ACTIVE', 'DELETED']
 const PAGE_SIZE = 20
+
+function toDateInputValue(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+// Quick presets for the common cases — each just computes a start/end
+// pair in the browser's local time, same shape the manual From/To inputs
+// already produce, so picking one is indistinguishable from typing the
+// same range by hand (and can still be fine-tuned afterwards).
+const DATE_RANGE_PRESETS: { label: string; range: () => { startDate: string; endDate: string } }[] = [
+  {
+    label: 'This month',
+    range: () => {
+      const now = new Date()
+      const start = new Date(now.getFullYear(), now.getMonth(), 1)
+      return { startDate: toDateInputValue(start), endDate: toDateInputValue(now) }
+    },
+  },
+  {
+    label: 'Last month',
+    range: () => {
+      const now = new Date()
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const end = new Date(now.getFullYear(), now.getMonth(), 0)
+      return { startDate: toDateInputValue(start), endDate: toDateInputValue(end) }
+    },
+  },
+  {
+    label: 'This year',
+    range: () => {
+      const now = new Date()
+      const start = new Date(now.getFullYear(), 0, 1)
+      return { startDate: toDateInputValue(start), endDate: toDateInputValue(now) }
+    },
+  },
+  {
+    label: 'Last 30 days',
+    range: () => {
+      const now = new Date()
+      const start = new Date(now)
+      start.setDate(start.getDate() - 30)
+      return { startDate: toDateInputValue(start), endDate: toDateInputValue(now) }
+    },
+  },
+]
 
 export function AccountTransactionsPanel({
   accountSid,
@@ -33,6 +80,9 @@ export function AccountTransactionsPanel({
 }) {
   const [categoryOptions, setCategoryOptions] = useState<Category[]>([])
   const [categorySid, setCategorySid] = useState('')
+  const [categorySearch, setCategorySearch] = useState('')
+  const debouncedCategorySearch = useDebouncedValue(categorySearch, 400)
+  const [hasLoadedCategoriesOnce, setHasLoadedCategoriesOnce] = useState(false)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [type, setType] = useState<TransactionType | ''>('')
@@ -44,6 +94,7 @@ export function AccountTransactionsPanel({
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [openMenuSid, setOpenMenuSid] = useState<string | null>(null)
   const createButtonRef = useRef<HTMLButtonElement>(null)
+  const filterToggleRef = useRef<HTMLButtonElement>(null)
 
   const [transactions, setTransactions] = useState<Transaction[] | null>(null)
   const [totalPages, setTotalPages] = useState(0)
@@ -59,12 +110,27 @@ export function AccountTransactionsPanel({
 
   useEffect(() => {
     setCategorySid('')
-    fetchAllCategories({ accountSid })
-      .then(setCategoryOptions)
-      .catch(() => {
-        setCategoryOptions([])
-      })
   }, [accountSid])
+
+  // Same pattern as CreateTransactionForm's category search: only shows a
+  // loading state before the very first result set ever arrives, so
+  // narrowing the search doesn't wipe the list on every keystroke's fetch.
+  useEffect(() => {
+    let cancelled = false
+    fetchAllCategories({ accountSid, displayName: debouncedCategorySearch || undefined })
+      .then((result) => {
+        if (!cancelled) {
+          setCategoryOptions(result)
+          setHasLoadedCategoriesOnce(true)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCategoryOptions([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [accountSid, debouncedCategorySearch])
 
   useEffect(() => {
     let cancelled = false
@@ -101,6 +167,24 @@ export function AccountTransactionsPanel({
     onTransactionMutated()
   }
 
+  function applyDateRangePreset(range: { startDate: string; endDate: string }) {
+    setStartDate(range.startDate)
+    setEndDate(range.endDate)
+  }
+
+  function clearFilters() {
+    setCategorySid('')
+    setCategorySearch('')
+    setStartDate('')
+    setEndDate('')
+    setType('')
+    setStatus('')
+    // Clear filters unmounts itself once activeFilterCount returns to 0 —
+    // without this, focus (if it was on Clear when clicked) drops to
+    // document.body instead of landing somewhere still on the page.
+    filterToggleRef.current?.focus()
+  }
+
   const activeFilterCount = [categorySid, startDate, endDate, type, status].filter(Boolean).length
 
   return (
@@ -109,14 +193,33 @@ export function AccountTransactionsPanel({
         Transactions
       </h2>
 
-      <button
-        type="button"
-        ref={createButtonRef}
-        className={styles.primaryButton}
-        onClick={() => setIsCreating(true)}
-      >
-        Create
-      </button>
+      <div className={styles.transactionsToolbar}>
+        <button
+          type="button"
+          ref={createButtonRef}
+          className={styles.primaryButton}
+          onClick={() => setIsCreating(true)}
+        >
+          Create
+        </button>
+
+        <button
+          type="button"
+          ref={filterToggleRef}
+          className={styles.filterToggle}
+          onClick={() => setFiltersOpen((open) => !open)}
+          aria-expanded={filtersOpen}
+          aria-controls="transactions-filter-panel"
+        >
+          Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+        </button>
+
+        {activeFilterCount > 0 && (
+          <button type="button" className={styles.linkButton} onClick={clearFilters}>
+            Clear filters
+          </button>
+        )}
+      </div>
 
       {isCreating && (
         <CreateTransactionModal
@@ -148,67 +251,90 @@ export function AccountTransactionsPanel({
         />
       )}
 
-      <button type="button" onClick={() => setFiltersOpen((open) => !open)} aria-expanded={filtersOpen}>
-        Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-      </button>
-
       {filtersOpen && (
-        <div>
-          <fieldset>
+        <div id="transactions-filter-panel" className={styles.filterPanel}>
+          <fieldset className={`${styles.field} ${styles.filterCategoryField}`}>
             <legend>Category</legend>
             <CategoryPicker
               key={accountSid}
-              groups={groupByParent(categoryOptions)}
+              groups={buildCategoryTree(categoryOptions)}
               selectedSid={categorySid}
               onSelect={setCategorySid}
               noSelectionLabel="All categories"
               name="transaction-category-filter"
+              search={categorySearch}
+              onSearchChange={setCategorySearch}
+              isLoading={!hasLoadedCategoriesOnce}
             />
           </fieldset>
 
-          <label htmlFor="transaction-start-date">From</label>
-          <input
-            id="transaction-start-date"
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
+          <div className={styles.field}>
+            <label htmlFor="transaction-start-date">From</label>
+            <input
+              id="transaction-start-date"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
 
-          <label htmlFor="transaction-end-date">To</label>
-          <input
-            id="transaction-end-date"
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
+          <div className={styles.field}>
+            <label htmlFor="transaction-end-date">To</label>
+            <input
+              id="transaction-end-date"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
 
-          <label htmlFor="transaction-type-filter">Type</label>
-          <select
-            id="transaction-type-filter"
-            value={type}
-            onChange={(e) => setType(e.target.value as TransactionType | '')}
-          >
-            <option value="">All types</option>
-            {ALL_TRANSACTION_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {TRANSACTION_TYPE_LABELS[t]}
-              </option>
-            ))}
-          </select>
+          <div className={`${styles.field} ${styles.filterPresetsField}`}>
+            <span className={styles.filterPresetsLabel}>Quick range</span>
+            <div className={styles.filterPresets}>
+              {DATE_RANGE_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  className={styles.filterPresetChip}
+                  onClick={() => applyDateRangePreset(preset.range())}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-          <label htmlFor="transaction-status-filter">Status</label>
-          <select
-            id="transaction-status-filter"
-            value={status}
-            onChange={(e) => setStatus(e.target.value as TransactionStatus | '')}
-          >
-            <option value="">All statuses</option>
-            {TRANSACTION_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {TRANSACTION_STATUS_LABELS[s]}
-              </option>
-            ))}
-          </select>
+          <div className={styles.field}>
+            <label htmlFor="transaction-type-filter">Type</label>
+            <select
+              id="transaction-type-filter"
+              value={type}
+              onChange={(e) => setType(e.target.value as TransactionType | '')}
+            >
+              <option value="">All types</option>
+              {ALL_TRANSACTION_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {TRANSACTION_TYPE_LABELS[t]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.field}>
+            <label htmlFor="transaction-status-filter">Status</label>
+            <select
+              id="transaction-status-filter"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as TransactionStatus | '')}
+            >
+              <option value="">All statuses</option>
+              {TRANSACTION_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {TRANSACTION_STATUS_LABELS[s]}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       )}
 
@@ -216,7 +342,25 @@ export function AccountTransactionsPanel({
 
       {transactions === null && !error && <p>Loading…</p>}
 
-      {transactions !== null && transactions.length === 0 && <p>No transactions found.</p>}
+      {transactions !== null && transactions.length === 0 && (
+        <div className={styles.emptyStatePlain}>
+          {activeFilterCount > 0 ? (
+            <>
+              <p>No transactions match the current filters.</p>
+              <button type="button" className={styles.secondaryButton} onClick={clearFilters}>
+                Clear filters
+              </button>
+            </>
+          ) : (
+            <>
+              <p>No transactions yet.</p>
+              <button type="button" className={styles.secondaryButton} onClick={() => setIsCreating(true)}>
+                Create your first transaction
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {transactions !== null && transactions.length > 0 && (
         <>

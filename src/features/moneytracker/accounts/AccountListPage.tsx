@@ -103,7 +103,6 @@ export function AccountListPage() {
           <AccountTabs
             key={selectedAccountSid}
             accountSid={selectedAccountSid}
-            institution={accounts?.find((a) => a.sid === selectedAccountSid)?.institution ?? ''}
             currency={accounts?.find((a) => a.sid === selectedAccountSid)?.baseCurrency ?? ''}
             onTransactionMutated={refetchAccounts}
           />
