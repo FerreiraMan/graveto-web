@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react'
 import { AccountOverviewPanel } from './AccountOverviewPanel'
 import { CategorySpendingPanel } from '../analytics/CategorySpendingPanel'
+import { TabBar, TabPanel } from '../shared/TabBar'
+import styles from '../MoneyTracker.module.css'
 
 type OverviewSubTab = 'cash-flow' | 'category-breakdown'
 
@@ -37,50 +39,52 @@ export function AccountOverviewSection({ accountSid, currency }: { accountSid: s
 
   return (
     <div>
-      <h2>Overview</h2>
+      <div className={styles.overviewHeader}>
+        <h2 className={styles.srOnly}>Overview</h2>
 
-      {availableYears.length > 0 && (
-        <div>
-          <label htmlFor="analytics-year">Year</label>
-          <select id="analytics-year" value={year ?? ''} onChange={(e) => setYear(Number(e.target.value))}>
-            {availableYears.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+        <TabBar
+          idPrefix="overview"
+          label="Overview sections"
+          tabs={SUB_TABS}
+          activeTab={activeSubTab}
+          onTabChange={setActiveSubTab}
+        />
 
-      <nav>
-        {SUB_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveSubTab(tab.id)}
-            aria-current={activeSubTab === tab.id ? 'true' : undefined}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+        {availableYears.length > 0 && (
+          <div className={styles.yearSelectorField}>
+            <label htmlFor="analytics-year">Year</label>
+            <select
+              id="analytics-year"
+              className={styles.yearSelector}
+              value={year ?? ''}
+              onChange={(e) => setYear(Number(e.target.value))}
+            >
+              {availableYears.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
 
-      {activeSubTab === 'cash-flow' && (
+      <TabPanel idPrefix="overview" tabId="cash-flow" isActive={activeSubTab === 'cash-flow'}>
         <AccountOverviewPanel
           accountSid={accountSid}
           currency={currency}
           year={year}
           onYearResolved={handleYearResolved}
         />
-      )}
-      {activeSubTab === 'category-breakdown' && (
+      </TabPanel>
+      <TabPanel idPrefix="overview" tabId="category-breakdown" isActive={activeSubTab === 'category-breakdown'}>
         <CategorySpendingPanel
           accountSid={accountSid}
           currency={currency}
           year={year}
           onInitialYearResolved={handleInitialYearResolved}
         />
-      )}
+      </TabPanel>
     </div>
   )
 }

@@ -497,6 +497,13 @@ fieldset.field legend {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 6px;
+  animation: fadeIn 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filterPanel {
+    animation: none;
+  }
 }
 
 .filterPanel .field {
@@ -661,6 +668,109 @@ fieldset.field legend {
 
 .accountTabActive:hover {
   color: var(--color-accent);
+}
+
+/* Overview sub-header: the sub-tab bar (Cash flow / Category breakdown,
+ * reusing the same TabBar/.accountTab* styling as the account-level tabs
+ * one level up) plus the shared year selector, on one row — the selector
+ * is a secondary, compact control, not a page-level header element. */
+.overviewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.overviewHeader .accountTabs {
+  margin-bottom: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Nested one level inside a sub-tab bar (Cash flow / Category breakdown) —
+ * kept visually subordinate to the account-level tabs above it (smaller
+ * text, no underline weight change) so the two tab rows read as different
+ * hierarchy levels rather than two identical, ambiguous strips. */
+.overviewHeader .accountTab {
+  font-size: 0.8125rem;
+  padding-bottom: 0.5rem;
+}
+
+.yearSelectorField {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
+.yearSelectorField label {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.yearSelector {
+  background: var(--color-ground);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text);
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8125rem;
+  font-family: inherit;
+}
+
+.yearSelector:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+/* Cash flow yearly summary: a restrained stat row, not KPI cards — this
+ * app's data-forward stance (DESIGN.md: "tables and lists are the primary
+ * UI, not cards or illustrations") applies here too. <dl> is the correct
+ * semantic for a set of labeled values. Amount color follows the same
+ * Financial Polarity tokens as the transactions table, reinforced by a
+ * leading +/- sign so meaning never relies on color alone. */
+.cashFlowSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin: 1rem 0 1.25rem;
+  padding: 0;
+}
+
+.cashFlowStat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 8rem;
+}
+
+.cashFlowStat dt {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.cashFlowStat dd {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+/* The year's actual performance signal — not the point-in-time balance,
+ * which is already visible at all times in the left-column account list
+ * (AccountRow) — gets the emphasis. This is a "how did I do" surface. */
+.cashFlowStatEmphasis dd {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.colMonth {
+  width: 7rem;
+}
+
+.colCashFlowAmount {
+  width: auto;
 }
 
 /* Create-account modal: the app's only overlay dialog (everywhere else,
