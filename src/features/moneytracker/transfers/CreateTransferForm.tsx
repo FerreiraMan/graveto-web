@@ -3,21 +3,36 @@ import { fetchAllAccounts } from '../accounts/api'
 import type { Account } from '../accounts/types'
 import { ApiError } from '../../../shared/api/errors'
 import { createTransfer } from './api'
+import { DateTimeField } from '../transactions/DateTimeField'
+import { combineDateTime, type DateTimeValue } from '../transactions/dateTime'
+import styles from '../MoneyTracker.module.css'
 
 export function CreateTransferForm({
   sourceAccountSid,
+  amount,
+  onAmountChange,
+  description,
+  onDescriptionChange,
+  occurredAt,
+  onOccurredAtChange,
   onCreated,
   onCancel,
+  onSubmittingChange,
 }: {
   sourceAccountSid: string
+  amount: string
+  onAmountChange: (value: string) => void
+  description: string
+  onDescriptionChange: (value: string) => void
+  occurredAt: DateTimeValue
+  onOccurredAtChange: (value: DateTimeValue) => void
   onCreated: () => void
   onCancel: () => void
+  onSubmittingChange?: (isSubmitting: boolean) => void
 }) {
   const [accounts, setAccounts] = useState<Account[]>([])
   const [destinationAccountSid, setDestinationAccountSid] = useState('')
-  const [amount, setAmount] = useState('')
-  const [description, setDescription] = useState('')
-  const [occurredAt, setOccurredAt] = useState('')
+  const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -28,6 +43,7 @@ export function CreateTransferForm({
       .catch(() => {
         setAccounts([])
       })
+      .finally(() => setIsLoadingAccounts(false))
   }, [])
 
   // A transfer can't have the same account on both sides — exclude the
@@ -40,13 +56,14 @@ export function CreateTransferForm({
     setError(null)
     setFieldErrors({})
     setIsSubmitting(true)
+    onSubmittingChange?.(true)
     try {
       await createTransfer({
         sourceAccountSid,
         destinationAccountSid,
         amount: Number(amount),
         description: description.trim() || undefined,
-        occurredAt: occurredAt || undefined,
+        occurredAt: combineDateTime(occurredAt),
       })
       onCreated()
     } catch (err) {
@@ -57,25 +74,30 @@ export function CreateTransferForm({
       }
     } finally {
       setIsSubmitting(false)
+      onSubmittingChange?.(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h3>Create transfer</h3>
+    <form className={styles.formFadeIn} onSubmit={handleSubmit}>
+      {error && (
+        <p className={styles.errorText} role="alert">
+          {error}
+        </p>
+      )}
 
-      {error && <p role="alert">{error}</p>}
-
-      <div>
+      <div className={styles.field}>
         <label htmlFor="transfer-destination">To account</label>
         <select
           id="transfer-destination"
           required
+          disabled={isLoadingAccounts}
+          className={destinationAccountSid === '' ? styles.selectPlaceholder : ''}
           value={destinationAccountSid}
           onChange={(e) => setDestinationAccountSid(e.target.value)}
         >
           <option value="" disabled>
-            Select destination account
+            {isLoadingAccounts ? 'Loading accounts…' : 'Select destination account'}
           </option>
           {destinationOptions.map((account) => (
             <option key={account.sid} value={account.sid}>
@@ -83,51 +105,60 @@ export function CreateTransferForm({
             </option>
           ))}
         </select>
-        {fieldErrors.destinationAccountSid && <span>{fieldErrors.destinationAccountSid}</span>}
+        {fieldErrors.destinationAccountSid && (
+          <span className={styles.fieldError}>{fieldErrors.destinationAccountSid}</span>
+        )}
       </div>
 
-      <div>
+      <div className={styles.field}>
         <label htmlFor="transfer-amount">Amount</label>
         <input
           id="transfer-amount"
           type="number"
           step="0.01"
           min="0.01"
+          placeholder="0.00"
           required
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          onChange={(e) => onAmountChange(e.target.value)}
         />
-        {fieldErrors.amount && <span>{fieldErrors.amount}</span>}
+        {fieldErrors.amount && <span className={styles.fieldError}>{fieldErrors.amount}</span>}
       </div>
 
-      <div>
+      <DateTimeField
+        idPrefix="transfer-occurred-at"
+        label="Date and time"
+        date={occurredAt.date}
+        time={occurredAt.time}
+        onDateChange={(value) => onOccurredAtChange({ ...occurredAt, date: value })}
+        onTimeChange={(value) => onOccurredAtChange({ ...occurredAt, time: value })}
+        error={fieldErrors.occurredAt}
+      />
+
+      <div className={styles.field}>
         <label htmlFor="transfer-description">Description</label>
         <input
           id="transfer-description"
           type="text"
+          placeholder="e.g. Monthly savings"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => onDescriptionChange(e.target.value)}
         />
-        {fieldErrors.description && <span>{fieldErrors.description}</span>}
+        {fieldErrors.description && <span className={styles.fieldError}>{fieldErrors.description}</span>}
       </div>
 
-      <div>
-        <label htmlFor="transfer-occurred-at">Date and time</label>
-        <input
-          id="transfer-occurred-at"
-          type="datetime-local"
-          value={occurredAt}
-          onChange={(e) => setOccurredAt(e.target.value)}
-        />
-        {fieldErrors.occurredAt && <span>{fieldErrors.occurredAt}</span>}
+      <div className={styles.formActions}>
+        <button
+          type="submit"
+          className={styles.primaryButton}
+          disabled={isSubmitting || !destinationAccountSid || !amount}
+        >
+          {isSubmitting ? 'Creating…' : 'Create'}
+        </button>
+        <button type="button" className={styles.secondaryButton} onClick={onCancel} disabled={isSubmitting}>
+          Cancel
+        </button>
       </div>
-
-      <button type="submit" disabled={isSubmitting || !destinationAccountSid || !amount}>
-        {isSubmitting ? 'Creating…' : 'Create transfer'}
-      </button>
-      <button type="button" onClick={onCancel} disabled={isSubmitting}>
-        Cancel
-      </button>
     </form>
   )
 }

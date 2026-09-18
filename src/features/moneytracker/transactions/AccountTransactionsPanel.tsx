@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fetchAllCategories } from '../categories/api'
 import { CategoryPicker } from '../categories/CategoryPicker'
 import { ALL_TRANSACTION_TYPES, TRANSACTION_TYPE_LABELS, type Category, type TransactionType } from '../categories/types'
@@ -15,8 +15,7 @@ import {
   type TransactionStatus,
 } from './types'
 import { groupByParent } from '../categories/categoryTree'
-import { CreateTransactionForm } from './CreateTransactionForm'
-import { CreateTransferForm } from '../transfers/CreateTransferForm'
+import { CreateTransactionModal } from './CreateTransactionModal'
 import { UpdateTransactionForm } from './UpdateTransactionForm'
 import { UpdateTransferForm } from '../transfers/UpdateTransferForm'
 import { TransactionRowMenu } from './TransactionRowMenu'
@@ -24,8 +23,6 @@ import styles from '../MoneyTracker.module.css'
 
 const TRANSACTION_STATUSES: TransactionStatus[] = ['ACTIVE', 'DELETED']
 const PAGE_SIZE = 20
-
-type CreateMode = 'transaction' | 'transfer' | null
 
 export function AccountTransactionsPanel({
   accountSid,
@@ -43,10 +40,10 @@ export function AccountTransactionsPanel({
   const [page, setPage] = useState(0)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [refetchToken, setRefetchToken] = useState(0)
-  const [createMode, setCreateMode] = useState<CreateMode>(null)
-  const [createMenuOpen, setCreateMenuOpen] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [openMenuSid, setOpenMenuSid] = useState<string | null>(null)
+  const createButtonRef = useRef<HTMLButtonElement>(null)
 
   const [transactions, setTransactions] = useState<Transaction[] | null>(null)
   const [totalPages, setTotalPages] = useState(0)
@@ -98,7 +95,7 @@ export function AccountTransactionsPanel({
   }, [accountSid, categorySid, startDate, endDate, type, status, page, refetchToken])
 
   function handleMutated() {
-    setCreateMode(null)
+    setIsCreating(false)
     setEditingTransaction(null)
     setRefetchToken((token) => token + 1)
     onTransactionMutated()
@@ -112,47 +109,26 @@ export function AccountTransactionsPanel({
         Transactions
       </h2>
 
-      <div>
-        <button type="button" onClick={() => setCreateMenuOpen((open) => !open)} aria-expanded={createMenuOpen}>
-          Create
-        </button>
-        {createMenuOpen && (
-          <div>
-            <button
-              type="button"
-              onClick={() => {
-                setCreateMenuOpen(false)
-                setCreateMode('transaction')
-              }}
-            >
-              Transaction
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setCreateMenuOpen(false)
-                setCreateMode('transfer')
-              }}
-            >
-              Transfer
-            </button>
-          </div>
-        )}
-      </div>
+      <button
+        type="button"
+        ref={createButtonRef}
+        className={styles.primaryButton}
+        onClick={() => setIsCreating(true)}
+      >
+        Create
+      </button>
 
-      {createMode === 'transaction' && (
-        <CreateTransactionForm
+      {isCreating && (
+        <CreateTransactionModal
           accountSid={accountSid}
-          onCreated={handleMutated}
-          onCancel={() => setCreateMode(null)}
-        />
-      )}
-
-      {createMode === 'transfer' && (
-        <CreateTransferForm
-          sourceAccountSid={accountSid}
-          onCreated={handleMutated}
-          onCancel={() => setCreateMode(null)}
+          onClose={() => {
+            setIsCreating(false)
+            createButtonRef.current?.focus()
+          }}
+          onCreated={() => {
+            handleMutated()
+            createButtonRef.current?.focus()
+          }}
         />
       )}
 
