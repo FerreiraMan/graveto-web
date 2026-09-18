@@ -948,6 +948,53 @@ fieldset.field legend {
   border-bottom: none;
 }
 
+/* Category breakdown table: 14 columns (category name + 12 months +
+ * yearly total) is wider than any other table in the app, so the
+ * category-name column stays sticky (position: sticky, left: 0) while
+ * the months scroll horizontally underneath .tableScroll — without this,
+ * scanning a row's months means losing sight of which category it is. */
+.categoryBreakdownTable {
+  min-width: 60rem;
+}
+
+.colCategoryName {
+  width: 13rem;
+}
+
+.colBreakdownAmount {
+  width: auto;
+}
+
+.categoryBreakdownNameCell {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-ground);
+  border-right: 1px solid var(--color-border);
+}
+
+/* Rollup (parent) rows get a surface-tint background, not just muted
+ * text — this reads as "this row is a container of spending" while
+ * scanning down the tree at a glance, distinct from the fragile
+ * color-only signal that caused the earlier tab hover/active collision
+ * this session. No font-weight: DESIGN.md keeps this surface's type
+ * plain, weight isn't a hierarchy signal this app uses.
+ *
+ * The sticky name cell needs its OWN background (rather than relying on
+ * transparency to show the row's tint through) since position: sticky
+ * paints over whatever scrolls underneath it — defaulting it to
+ * --color-ground (leaf rows sit on the page's ambient background, this
+ * table has no background of its own) and overriding to --color-surface
+ * only when the row is a parent keeps the sticky column's tint matching
+ * the rest of that row exactly, on both leaf and parent rows. */
+.categoryBreakdownRowParent {
+  background: var(--color-surface);
+}
+
+.categoryBreakdownRowParent .categoryBreakdownNameCell {
+  background: var(--color-surface);
+}
+
 /* Every Previous/Next click refetches and replaces the whole row set —
  * without this, the table clears and repopulates with zero transition,
  * which reads as an abrupt "pop" even though the operation itself is
