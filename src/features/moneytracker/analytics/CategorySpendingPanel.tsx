@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fetchCategorySpendingReport } from './api'
 import type { CategoryAggregate, CategorySpendingReport } from './types'
 import { ApiError } from '../../../shared/api/errors'
@@ -50,22 +50,25 @@ function CategoryAggregateRow({
     <>
       <tr className={rowClassName}>
         <td className={styles.categoryBreakdownNameCell} style={{ paddingLeft: `${0.5 + depth * 0.875}rem` }}>
-          <div className={styles.categoryRow}>
-            {hasChildren ? (
-              <button
-                type="button"
-                className={styles.categoryToggle}
-                onClick={() => setExpanded((current) => !current)}
-                aria-expanded={expanded}
-                aria-label={`${expanded ? 'Collapse' : 'Expand'} ${aggregate.categoryName} subcategories`}
-              >
+          {hasChildren ? (
+            <button
+              type="button"
+              className={styles.categoryRowToggle}
+              onClick={() => setExpanded((current) => !current)}
+              aria-expanded={expanded}
+              aria-label={`${expanded ? 'Collapse' : 'Expand'} ${aggregate.categoryName} subcategories`}
+            >
+              <span className={styles.categoryBreakdownChevron} aria-hidden="true">
                 {expanded ? '▾' : '▸'}
-              </button>
-            ) : (
+              </span>
+              <span title={aggregate.categoryName}>{aggregate.categoryName}</span>
+            </button>
+          ) : (
+            <div className={styles.categoryRow}>
               <span className={styles.categoryToggleSpacer} aria-hidden="true" />
-            )}
-            <span title={aggregate.categoryName}>{aggregate.categoryName}</span>
-          </div>
+              <span title={aggregate.categoryName}>{aggregate.categoryName}</span>
+            </div>
+          )}
         </td>
         {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
           const value = monthlyTotal(aggregate.monthlyTotals, month)
@@ -120,8 +123,24 @@ export function CategorySpendingPanel({
   const [report, setReport] = useState<CategorySpendingReport | null>(null)
   const [error, setError] = useState<string | null>(null)
   const symbol = currencySymbol(currency)
+  // Tracks the accountSid+year this component last actually fetched (as
+  // opposed to `report`, which holds the fetched DATA) — `year` starts
+  // undefined, then flows back to a real value once this same fetch
+  // resolves and reports it up to the parent (onInitialYearResolved, used
+  // when this tab is the first to load). That round trip changes this
+  // effect's own `year` dependency on every first load, which would
+  // otherwise look identical to a genuine year change and trigger a
+  // second, redundant fetch of the report that just arrived (visible as
+  // the table flickering blank then repopulating). Comparing against the
+  // last-fetched key — not against `report` itself — avoids the effect
+  // depending on its own output. Same fix as AccountOverviewPanel, same
+  // root cause (the two share this exact year-echo-back shape).
+  const lastFetchedKey = useRef<string | null>(null)
 
   useEffect(() => {
+    const key = `${accountSid}-${year ?? ''}`
+    if (lastFetchedKey.current === key) return
+
     let cancelled = false
     setReport(null)
     setError(null)
@@ -129,6 +148,7 @@ export function CategorySpendingPanel({
     fetchCategorySpendingReport(accountSid, year)
       .then((result) => {
         if (cancelled) return
+        lastFetchedKey.current = `${accountSid}-${result.year}`
         setReport(result)
         onInitialYearResolved(result.year)
       })
@@ -179,7 +199,7 @@ export function CategorySpendingPanel({
                 </th>
               </tr>
             </thead>
-            <tbody aria-live="polite">
+            <tbody aria-live="polite" key={`${accountSid}-${report.year}`}>
               {sortByYearlyTotalDesc(report.categories).map((aggregate) => (
                 <CategoryAggregateRow key={aggregate.categorySid} aggregate={aggregate} symbol={symbol} depth={0} />
               ))}

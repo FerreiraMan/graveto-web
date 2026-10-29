@@ -184,6 +184,18 @@
   white-space: nowrap;
 }
 
+/* Recurring status badge: PAUSED/COMPLETED/CANCELED all mean "not
+ * currently running," which is the one distinction that matters at a
+ * glance scanning a list of recurring items — ACTIVE vs everything else.
+ * A border/text tint, not a new badge color, keeps this inside the app's
+ * existing restraint (color stays reserved for financial polarity); same
+ * tint-not-color reasoning as the category breakdown table's parent-row
+ * treatment earlier this session. */
+.badgeActive {
+  color: var(--color-text);
+  border-color: var(--color-accent);
+}
+
 .chevron {
   font-size: 1.25rem;
   color: var(--color-text-muted);
@@ -670,6 +682,20 @@ fieldset.field legend {
   color: var(--color-accent);
 }
 
+/* Disabled while the active tab holds an open create/edit form — the
+ * destructive switch (silently discarding it, since TabPanel unmounts
+ * inactive content) isn't offered at all rather than allowed-then-
+ * confirmed via a native dialog this app doesn't otherwise use. */
+.accountTab[aria-disabled='true'] {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.accountTab[aria-disabled='true']:hover {
+  color: var(--color-text-muted);
+}
+
 /* Overview sub-header: the sub-tab bar (Cash flow / Category breakdown,
  * reusing the same TabBar/.accountTab* styling as the account-level tabs
  * one level up) plus the shared year selector, on one row — the selector
@@ -688,11 +714,13 @@ fieldset.field legend {
   min-width: 0;
 }
 
-/* Nested one level inside a sub-tab bar (Cash flow / Category breakdown) —
- * kept visually subordinate to the account-level tabs above it (smaller
- * text, no underline weight change) so the two tab rows read as different
+/* Nested one level inside a sub-tab bar (Overview's Cash flow / Category
+ * breakdown, Recurring's Transactions / Transfers) — kept visually
+ * subordinate to the account-level tabs above it (smaller text, no
+ * underline weight change) so the two tab rows read as different
  * hierarchy levels rather than two identical, ambiguous strips. */
-.overviewHeader .accountTab {
+.overviewHeader .accountTab,
+.recurringSubTabs .accountTab {
   font-size: 0.8125rem;
   padding-bottom: 0.5rem;
 }
@@ -813,6 +841,8 @@ fieldset.field legend {
 .modal {
   width: 100%;
   max-width: 400px;
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 6px;
@@ -887,6 +917,27 @@ fieldset.field legend {
 
 .colStatus {
   width: 5rem;
+}
+
+.colBusinessDay {
+  width: 7rem;
+}
+
+/* .transactionsTable's base min-width (45rem) predates the Adjust-to-
+ * business-day column — these two tables' own column widths now sum
+ * past it (description 16 + category 8 + type 6 + amount 9 + date 6.5 +
+ * business-day 7 + status 5 + actions 2.5 = 60rem; transfers' own sum,
+ * without the type column, is 54rem). table-layout: fixed already
+ * renders at the real column sum regardless of min-width, so this isn't
+ * a visual bug — but the stale 45rem no longer describes either table's
+ * actual minimum, which matters for anyone reasoning about the
+ * .tableScroll breakpoint from the CSS alone. */
+.recurringTransactionsTable {
+  min-width: 60rem;
+}
+
+.recurringTransfersTable {
+  min-width: 54rem;
 }
 
 .colActions {
@@ -1314,6 +1365,59 @@ fieldset.field legend {
   flex-shrink: 0;
 }
 
+/* Category breakdown's row-name toggle — the whole name is the click
+ * target, not just a small chevron glyph, since a 1.25rem hit target was
+ * too small for a frequently-used expand/collapse action in a dense
+ * table. No button chrome of its own (background/border/padding reset,
+ * text stays left-aligned and inherits the cell's normal text color) so
+ * it reads as the row's name, not as a button sitting inside it — same
+ * principle as CategoryPicker's own rows, which are clickable without
+ * looking button-shaped. */
+.categoryRowToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.categoryRowToggle:hover {
+  color: var(--color-accent);
+}
+
+.categoryRowToggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+/* Larger than CategoryPicker's own chevron (0.6875rem) — that one sits
+ * inside its own dedicated button with a full 1.25rem hit target around
+ * it; this one is purely decorative now that the whole row is clickable,
+ * but still needs to read clearly at this table's denser row height. */
+.categoryBreakdownChevron {
+  font-size: 0.875rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  width: 1.25rem;
+}
+
+.categoryRowToggle:hover .categoryBreakdownChevron {
+  color: var(--color-accent);
+}
+
+.categoryRowToggle:focus-visible .categoryBreakdownChevron {
+  color: var(--color-accent);
+}
+
 .categoryLabel {
   display: flex;
   align-items: center;
@@ -1409,4 +1513,60 @@ fieldset.field legend {
   flex: 1;
   min-width: 0;
   text-align: center;
+}
+
+/* Recurring operations tab: recurring transactions and recurring
+ * transfers get their own sub-tab (TabBar/TabPanel, same pattern as
+ * Overview's Cash flow / Category breakdown) rather than sitting side by
+ * side. Side-by-side was tried first, but the two tables are different
+ * shapes (7 columns vs 6) and each grows independently when its own
+ * create/edit form opens — halving the available width made both cramped
+ * sooner than needed, and mismatched column heights read worse than two
+ * full-width views one click apart. */
+.recurringSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+/* Create button's row — the section's own title is sr-only (the sub-tab
+ * label above already names it visibly), so this currently holds just
+ * Create. Plain flex, not space-between: with one child, space-between
+ * would be a no-op that misleadingly implies a second item belongs on
+ * the opposite edge. */
+.recurringSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.recurringFilterRow {
+  display: flex;
+  gap: 0.875rem;
+  flex-wrap: wrap;
+}
+
+.recurringStatusField {
+  flex: 0 0 auto;
+  min-width: 10rem;
+}
+
+/* First checkbox field in the app — a plain checkbox + its label text on
+ * one line, unlike .field's other inputs which stack label above input.
+ * Reuses .field's muted label color/size so it still reads as the same
+ * field system, just laid out horizontally since there's no separate
+ * value to show beside a checkbox's own label. */
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.checkboxLabel input[type='checkbox'] {
+  width: auto;
+  accent-color: var(--color-accent);
 }
