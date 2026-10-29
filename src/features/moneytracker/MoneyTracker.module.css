@@ -964,6 +964,12 @@ fieldset.field legend {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* Default baseline alignment reads fine for plain text, but an
+   * icon-only trigger (⋮) or a short placeholder dash sits visibly off-
+   * center against a badge or taller content in the same row — middle
+   * keeps every cell's content centered on the row regardless of what
+   * it actually contains. */
+  vertical-align: middle;
 }
 
 /* The actions cell holds the row menu's popover, which needs to render
