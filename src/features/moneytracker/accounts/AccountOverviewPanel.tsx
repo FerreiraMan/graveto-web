@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fetchCashFlowReport } from '../analytics/api'
 import type { CashFlowReport } from '../analytics/types'
 import { ApiError } from '../../../shared/api/errors'
@@ -48,8 +48,22 @@ export function AccountOverviewPanel({
   const [report, setReport] = useState<CashFlowReport | null>(null)
   const [error, setError] = useState<string | null>(null)
   const symbol = currencySymbol(currency)
+  // Tracks the accountSid+year this component last actually fetched (as
+  // opposed to `report`, which holds the fetched DATA) — `year` starts
+  // undefined, then flows back to a real value once this same fetch
+  // resolves and reports it up to the parent (onYearResolved). That round
+  // trip changes this effect's own `year` dependency on every first load,
+  // which would otherwise look identical to a genuine year change and
+  // trigger a second, redundant fetch of the report that just arrived
+  // (visible as the table flickering blank then repopulating). Comparing
+  // against the last-fetched key — not against `report` itself — avoids
+  // the effect depending on its own output.
+  const lastFetchedKey = useRef<string | null>(null)
 
   useEffect(() => {
+    const key = `${accountSid}-${year ?? ''}`
+    if (lastFetchedKey.current === key) return
+
     let cancelled = false
     setReport(null)
     setError(null)
@@ -57,6 +71,7 @@ export function AccountOverviewPanel({
     fetchCashFlowReport(accountSid, year)
       .then((result) => {
         if (cancelled) return
+        lastFetchedKey.current = `${accountSid}-${result.year}`
         setReport(result)
         onYearResolved(result.year, result.yearsWithCashFlows)
       })
@@ -153,7 +168,7 @@ export function AccountOverviewPanel({
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody key={`${accountSid}-${report.year}`}>
                 {report.monthlyCashFlow.map((m) => (
                   <tr key={m.month}>
                     <td>{monthLabel(m.month)}</td>

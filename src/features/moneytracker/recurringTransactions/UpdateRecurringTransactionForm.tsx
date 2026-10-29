@@ -11,6 +11,7 @@ import {
 import { ScheduleFields } from '../recurring/ScheduleFields'
 import { updateRecurringTransaction } from './api'
 import type { RecurringTransaction } from './types'
+import styles from '../MoneyTracker.module.css'
 
 export function UpdateRecurringTransactionForm({
   recurringTransaction,
@@ -74,12 +75,16 @@ export function UpdateRecurringTransactionForm({
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h3>Update recurring transaction</h3>
+    <form className={styles.formFadeIn} onSubmit={handleSubmit}>
+      <h3 className={styles.srOnly}>Update recurring transaction</h3>
 
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p className={styles.errorText} role="alert">
+          {error}
+        </p>
+      )}
 
-      <div>
+      <div className={styles.field}>
         <label htmlFor="update-recurring-transaction-description">Description</label>
         <input
           id="update-recurring-transaction-description"
@@ -88,10 +93,10 @@ export function UpdateRecurringTransactionForm({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
-        {fieldErrors.description && <span>{fieldErrors.description}</span>}
+        {fieldErrors.description && <span className={styles.fieldError}>{fieldErrors.description}</span>}
       </div>
 
-      <div>
+      <div className={styles.field}>
         <label htmlFor="update-recurring-transaction-amount">Amount</label>
         <input
           id="update-recurring-transaction-amount"
@@ -102,7 +107,7 @@ export function UpdateRecurringTransactionForm({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
         />
-        {fieldErrors.amount && <span>{fieldErrors.amount}</span>}
+        {fieldErrors.amount && <span className={styles.fieldError}>{fieldErrors.amount}</span>}
       </div>
 
       <ScheduleFields
@@ -125,10 +130,10 @@ export function UpdateRecurringTransactionForm({
         showDayFields={frequencyChanged}
       />
       {frequencyChanged && (requiresDayOfMonth(frequency) || requiresDayOfWeek(frequency)) && (
-        <p>Changing frequency requires picking a new day above.</p>
+        <p className={styles.mutedText}>Changing frequency requires picking a new day above.</p>
       )}
 
-      <div>
+      <div className={styles.field}>
         <label htmlFor="update-recurring-transaction-next-execution">Next execution date</label>
         <input
           id="update-recurring-transaction-next-execution"
@@ -136,10 +141,10 @@ export function UpdateRecurringTransactionForm({
           value={nextExecutionDate}
           onChange={(e) => setNextExecutionDate(e.target.value)}
         />
-        {fieldErrors.nextExecutionDate && <span>{fieldErrors.nextExecutionDate}</span>}
+        {fieldErrors.nextExecutionDate && <span className={styles.fieldError}>{fieldErrors.nextExecutionDate}</span>}
       </div>
 
-      <div>
+      <div className={styles.field}>
         <label htmlFor="update-recurring-transaction-status">Status</label>
         <select
           id="update-recurring-transaction-status"
@@ -152,15 +157,21 @@ export function UpdateRecurringTransactionForm({
             </option>
           ))}
         </select>
-        {fieldErrors.status && <span>{fieldErrors.status}</span>}
+        {fieldErrors.status && <span className={styles.fieldError}>{fieldErrors.status}</span>}
       </div>
 
-      <button type="submit" disabled={isSubmitting || !amount || !description.trim() || !isScheduleValid}>
-        {isSubmitting ? 'Saving…' : 'Save changes'}
-      </button>
-      <button type="button" onClick={onCancel} disabled={isSubmitting}>
-        Cancel
-      </button>
+      <div className={styles.formActions}>
+        <button
+          type="submit"
+          className={styles.primaryButton}
+          disabled={isSubmitting || !amount || !description.trim() || !isScheduleValid}
+        >
+          {isSubmitting ? 'Saving…' : 'Save changes'}
+        </button>
+        <button type="button" className={styles.secondaryButton} onClick={onCancel} disabled={isSubmitting}>
+          Cancel
+        </button>
+      </div>
     </form>
   )
 }

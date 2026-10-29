@@ -1,55 +1,59 @@
 import { useEffect, useState } from 'react'
 import { ApiError } from '../../../shared/api/errors'
-import { EDITABLE_RECURRING_STATUSES, RECURRING_STATUS_LABELS, type RecurringOperationStatus } from '../recurring/types'
+import { EDITABLE_RECURRING_STATUSES, RECURRING_STATUS_LABELS, isTerminalStatus, type RecurringOperationStatus } from '../recurring/types'
 import { TRANSACTION_TYPE_LABELS } from '../categories/types'
 import { fetchAllAccounts } from '../accounts/api'
 import type { Account } from '../accounts/types'
 import { currencySymbol } from '../currency'
 import { fetchRecurringTransactions } from '../recurringTransactions/api'
 import type { RecurringTransaction } from '../recurringTransactions/types'
-import { CreateRecurringTransactionForm } from '../recurringTransactions/CreateRecurringTransactionForm'
+import { CreateRecurringTransactionModal } from '../recurringTransactions/CreateRecurringTransactionModal'
 import { UpdateRecurringTransactionForm } from '../recurringTransactions/UpdateRecurringTransactionForm'
 import { RecurringTransactionRowMenu } from '../recurringTransactions/RecurringTransactionRowMenu'
 import { fetchRecurringTransfersForAccount } from '../recurringTransfers/api'
 import type { RecurringTransfer } from '../recurringTransfers/types'
-import { CreateRecurringTransferForm } from '../recurringTransfers/CreateRecurringTransferForm'
+import { CreateRecurringTransferModal } from '../recurringTransfers/CreateRecurringTransferModal'
 import { UpdateRecurringTransferForm } from '../recurringTransfers/UpdateRecurringTransferForm'
 import { RecurringTransferRowMenu } from '../recurringTransfers/RecurringTransferRowMenu'
+import { TabBar, TabPanel } from '../shared/TabBar'
+import styles from '../MoneyTracker.module.css'
 
 const ALL_RECURRING_STATUSES: RecurringOperationStatus[] = [...EDITABLE_RECURRING_STATUSES, 'COMPLETED', 'CANCELED']
 
-// Only one create/edit form can be open across BOTH subsections at a time —
-// opening any one of these closes whatever else was open, same rule as the
-// per-row hamburger menus. A discriminated union (rather than 4 separate
-// booleans/nullables) makes "closing everything else" a single setState
-// call instead of 4, and makes "is anything open" one falsy check.
-type OpenForm =
-  | { kind: 'create-transaction' }
-  | { kind: 'create-transfer' }
-  | { kind: 'edit-transaction'; item: RecurringTransaction }
-  | { kind: 'edit-transfer'; item: RecurringTransfer }
-  | null
+// adjustToBusinessDay is optional on the response types (unverified
+// whether the backend always sends it) — rendering a bare 'No' for a
+// missing value would be a confident wrong answer, indistinguishable
+// from a real 'No'. 'Unknown' makes the absence visible instead.
+function businessDayLabel(adjustToBusinessDay: boolean | undefined): string {
+  if (adjustToBusinessDay === undefined) return 'Unknown'
+  return adjustToBusinessDay ? 'Yes' : 'No'
+}
+
+type RecurringSubTab = 'transactions' | 'transfers'
+
+const SUB_TABS: { id: RecurringSubTab; label: string }[] = [
+  { id: 'transactions', label: 'Transactions' },
+  { id: 'transfers', label: 'Transfers' },
+]
 
 function RecurringTransactionsSection({
   accountSid,
-  openForm,
-  onOpenForm,
-  openMenuSid,
-  onOpenMenuSid,
-  refetchToken,
-  onMutated,
+  onFormOpenChange,
 }: {
   accountSid: string
-  openForm: OpenForm
-  onOpenForm: (form: OpenForm) => void
-  openMenuSid: string | null
-  onOpenMenuSid: (sid: string | null) => void
-  refetchToken: number
-  onMutated: () => void
+  onFormOpenChange: (isOpen: boolean) => void
 }) {
   const [status, setStatus] = useState<RecurringOperationStatus | ''>('')
   const [items, setItems] = useState<RecurringTransaction[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
+  const [editing, setEditing] = useState<RecurringTransaction | null>(null)
+  const [openMenuSid, setOpenMenuSid] = useState<string | null>(null)
+  const [refetchToken, setRefetchToken] = useState(0)
+
+  useEffect(() => {
+    onFormOpenChange(isCreating || editing !== null)
+  }, [isCreating, editing, onFormOpenChange])
 
   useEffect(() => {
     let cancelled = false
@@ -69,94 +73,123 @@ function RecurringTransactionsSection({
     }
   }, [accountSid, status, refetchToken])
 
-  const isCreating = openForm?.kind === 'create-transaction'
-  const editing = openForm?.kind === 'edit-transaction' ? openForm.item : null
+  function handleMutated() {
+    setIsCreating(false)
+    setEditing(null)
+    setOpenMenuSid(null)
+    setRefetchToken((token) => token + 1)
+  }
 
   return (
-    <section>
-      <h3>Recurring transactions</h3>
-
-      <button type="button" onClick={() => onOpenForm({ kind: 'create-transaction' })}>
-        Create recurring transaction
-      </button>
+    <section className={styles.recurringSection}>
+      <div className={styles.recurringSectionHeader}>
+        <h3 className={styles.srOnly}>Recurring transactions</h3>
+        <button type="button" className={styles.primaryButton} onClick={() => setIsCreating(true)}>
+          Create
+        </button>
+      </div>
 
       {isCreating && (
-        <CreateRecurringTransactionForm
-          accountSid={accountSid}
-          onCreated={onMutated}
-          onCancel={() => onOpenForm(null)}
-        />
+        <CreateRecurringTransactionModal accountSid={accountSid} onClose={() => setIsCreating(false)} onCreated={handleMutated} />
       )}
 
       {editing && (
-        <UpdateRecurringTransactionForm
-          recurringTransaction={editing}
-          onUpdated={onMutated}
-          onCancel={() => onOpenForm(null)}
-        />
+        <UpdateRecurringTransactionForm recurringTransaction={editing} onUpdated={handleMutated} onCancel={() => setEditing(null)} />
       )}
 
-      <label htmlFor="recurring-transaction-status-filter">Status</label>
-      <select
-        id="recurring-transaction-status-filter"
-        value={status}
-        onChange={(e) => setStatus(e.target.value as RecurringOperationStatus | '')}
-      >
-        <option value="">All statuses</option>
-        {ALL_RECURRING_STATUSES.map((s) => (
-          <option key={s} value={s}>
-            {RECURRING_STATUS_LABELS[s]}
-          </option>
-        ))}
-      </select>
+      <div className={styles.recurringFilterRow}>
+        <div className={`${styles.field} ${styles.recurringStatusField}`}>
+          <label htmlFor="recurring-transaction-status-filter">Status</label>
+          <select
+            id="recurring-transaction-status-filter"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as RecurringOperationStatus | '')}
+          >
+            <option value="">All statuses</option>
+            {ALL_RECURRING_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {RECURRING_STATUS_LABELS[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p className={styles.errorText} role="alert">
+          {error}
+        </p>
+      )}
 
-      {items === null && !error && <p>Loading…</p>}
+      {items === null && !error && <p className={styles.mutedText}>Loading…</p>}
 
-      {items !== null && items.length === 0 && <p>No recurring transactions found.</p>}
+      {items !== null && items.length === 0 && <p className={styles.mutedText}>No recurring transactions found.</p>}
 
       {items !== null && items.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th>Category</th>
-              <th>Type</th>
-              <th>Amount</th>
-              <th>Next execution</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.sid}>
-                <td>{item.description}</td>
-                <td>{item.category.name}</td>
-                <td>{TRANSACTION_TYPE_LABELS[item.transactionType]}</td>
-                <td>
-                  {item.amount}
-                  {currencySymbol(item.currency)}
-                </td>
-                <td>{item.nextExecutionDate}</td>
-                <td>{RECURRING_STATUS_LABELS[item.status]}</td>
-                <td>
-                  <RecurringTransactionRowMenu
-                    recurringTransaction={item}
-                    isOpen={openMenuSid === item.sid}
-                    onOpenChange={(isOpen) => {
-                      onOpenMenuSid(isOpen ? item.sid : null)
-                      if (isOpen) onOpenForm(null)
-                    }}
-                    onEdit={() => onOpenForm({ kind: 'edit-transaction', item })}
-                    onCanceled={onMutated}
-                  />
-                </td>
+        <div className={styles.tableScroll}>
+          <table className={`${styles.transactionsTable} ${styles.recurringTransactionsTable}`}>
+            <colgroup>
+              <col className={styles.colDescription} />
+              <col className={styles.colCategory} />
+              <col className={styles.colType} />
+              <col className={styles.colAmount} />
+              <col className={styles.colDate} />
+              <col className={styles.colBusinessDay} />
+              <col className={styles.colStatus} />
+              <col className={styles.colActions} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col">Description</th>
+                <th scope="col">Category</th>
+                <th scope="col">Type</th>
+                <th scope="col" className={styles.amountHeader}>
+                  Amount
+                </th>
+                <th scope="col">Next execution</th>
+                <th scope="col">Adjust to business day</th>
+                <th scope="col">Status</th>
+                <th scope="col"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.sid}>
+                  <td>{item.description}</td>
+                  <td>{item.category.name}</td>
+                  <td>{TRANSACTION_TYPE_LABELS[item.transactionType]}</td>
+                  <td className={styles.amountCell}>
+                    {item.amount}
+                    {currencySymbol(item.currency)}
+                  </td>
+                  <td>{item.nextExecutionDate}</td>
+                  <td>{businessDayLabel(item.adjustToBusinessDay)}</td>
+                  <td>
+                    <span className={`${styles.badge} ${item.status === 'ACTIVE' ? styles.badgeActive : ''}`}>
+                      {RECURRING_STATUS_LABELS[item.status]}
+                    </span>
+                  </td>
+                  <td className={styles.actionsCell}>
+                    {isTerminalStatus(item.status) ? (
+                      <span className={styles.mutedText}>
+                        <span aria-hidden="true">—</span>
+                        <span className={styles.srOnly}>No actions available</span>
+                      </span>
+                    ) : (
+                      <RecurringTransactionRowMenu
+                        recurringTransaction={item}
+                        isOpen={openMenuSid === item.sid}
+                        onOpenChange={(isOpen) => setOpenMenuSid(isOpen ? item.sid : null)}
+                        onEdit={() => setEditing(item)}
+                        onCanceled={handleMutated}
+                      />
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   )
@@ -164,26 +197,24 @@ function RecurringTransactionsSection({
 
 function RecurringTransfersSection({
   accountSid,
-  openForm,
-  onOpenForm,
-  openMenuSid,
-  onOpenMenuSid,
-  refetchToken,
-  onMutated,
+  onFormOpenChange,
 }: {
   accountSid: string
-  openForm: OpenForm
-  onOpenForm: (form: OpenForm) => void
-  openMenuSid: string | null
-  onOpenMenuSid: (sid: string | null) => void
-  refetchToken: number
-  onMutated: () => void
+  onFormOpenChange: (isOpen: boolean) => void
 }) {
   const [status, setStatus] = useState<RecurringOperationStatus | ''>('')
   const [destinationAccountSid, setDestinationAccountSid] = useState('')
   const [accounts, setAccounts] = useState<Account[]>([])
   const [items, setItems] = useState<RecurringTransfer[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
+  const [editing, setEditing] = useState<RecurringTransfer | null>(null)
+  const [openMenuSid, setOpenMenuSid] = useState<string | null>(null)
+  const [refetchToken, setRefetchToken] = useState(0)
+
+  useEffect(() => {
+    onFormOpenChange(isCreating || editing !== null)
+  }, [isCreating, editing, onFormOpenChange])
 
   useEffect(() => {
     fetchAllAccounts()
@@ -199,7 +230,10 @@ function RecurringTransfersSection({
     setItems(null)
     setError(null)
 
-    fetchRecurringTransfersForAccount(accountSid, { status: status || undefined, destinationAccountSid: destinationAccountSid || undefined })
+    fetchRecurringTransfersForAccount(accountSid, {
+      status: status || undefined,
+      destinationAccountSid: destinationAccountSid || undefined,
+    })
       .then((result) => {
         if (!cancelled) setItems(result)
       })
@@ -212,157 +246,186 @@ function RecurringTransfersSection({
     }
   }, [accountSid, status, destinationAccountSid, refetchToken])
 
-  const isCreating = openForm?.kind === 'create-transfer'
-  const editing = openForm?.kind === 'edit-transfer' ? openForm.item : null
+  function handleMutated() {
+    setIsCreating(false)
+    setEditing(null)
+    setOpenMenuSid(null)
+    setRefetchToken((token) => token + 1)
+  }
 
   return (
-    <section>
-      <h3>Recurring transfers</h3>
-
-      <button type="button" onClick={() => onOpenForm({ kind: 'create-transfer' })}>
-        Create recurring transfer
-      </button>
+    <section className={styles.recurringSection}>
+      <div className={styles.recurringSectionHeader}>
+        <h3 className={styles.srOnly}>Recurring transfers</h3>
+        <button type="button" className={styles.primaryButton} onClick={() => setIsCreating(true)}>
+          Create
+        </button>
+      </div>
 
       {isCreating && (
-        <CreateRecurringTransferForm
-          sourceAccountSid={accountSid}
-          onCreated={onMutated}
-          onCancel={() => onOpenForm(null)}
-        />
+        <CreateRecurringTransferModal sourceAccountSid={accountSid} onClose={() => setIsCreating(false)} onCreated={handleMutated} />
       )}
 
       {editing && (
-        <UpdateRecurringTransferForm
-          recurringTransfer={editing}
-          onUpdated={onMutated}
-          onCancel={() => onOpenForm(null)}
-        />
+        <UpdateRecurringTransferForm recurringTransfer={editing} onUpdated={handleMutated} onCancel={() => setEditing(null)} />
       )}
 
-      <label htmlFor="recurring-transfer-status-filter">Status</label>
-      <select
-        id="recurring-transfer-status-filter"
-        value={status}
-        onChange={(e) => setStatus(e.target.value as RecurringOperationStatus | '')}
-      >
-        <option value="">All statuses</option>
-        {ALL_RECURRING_STATUSES.map((s) => (
-          <option key={s} value={s}>
-            {RECURRING_STATUS_LABELS[s]}
-          </option>
-        ))}
-      </select>
+      <div className={styles.recurringFilterRow}>
+        <div className={`${styles.field} ${styles.recurringStatusField}`}>
+          <label htmlFor="recurring-transfer-status-filter">Status</label>
+          <select
+            id="recurring-transfer-status-filter"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as RecurringOperationStatus | '')}
+          >
+            <option value="">All statuses</option>
+            {ALL_RECURRING_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {RECURRING_STATUS_LABELS[s]}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <label htmlFor="recurring-transfer-destination-filter">Destination account</label>
-      <select
-        id="recurring-transfer-destination-filter"
-        value={destinationAccountSid}
-        onChange={(e) => setDestinationAccountSid(e.target.value)}
-      >
-        <option value="">All destination accounts</option>
-        {accounts
-          .filter((account) => account.sid !== accountSid)
-          .map((account) => (
-            <option key={account.sid} value={account.sid}>
-              {account.institution}
-            </option>
-          ))}
-      </select>
+        <div className={styles.field}>
+          <label htmlFor="recurring-transfer-destination-filter">Destination account</label>
+          <select
+            id="recurring-transfer-destination-filter"
+            value={destinationAccountSid}
+            onChange={(e) => setDestinationAccountSid(e.target.value)}
+          >
+            <option value="">All destination accounts</option>
+            {accounts
+              .filter((account) => account.sid !== accountSid)
+              .map((account) => (
+                <option key={account.sid} value={account.sid}>
+                  {account.institution}
+                </option>
+              ))}
+          </select>
+        </div>
+      </div>
 
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p className={styles.errorText} role="alert">
+          {error}
+        </p>
+      )}
 
-      {items === null && !error && <p>Loading…</p>}
+      {items === null && !error && <p className={styles.mutedText}>Loading…</p>}
 
-      {items !== null && items.length === 0 && <p>No recurring transfers found.</p>}
+      {items !== null && items.length === 0 && <p className={styles.mutedText}>No recurring transfers found.</p>}
 
       {items !== null && items.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th>Destination account</th>
-              <th>Amount</th>
-              <th>Next execution</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.sid}>
-                <td>{item.description}</td>
-                <td>{item.destinationAccount.name}</td>
-                <td>
-                  {item.amount}
-                  {currencySymbol(item.currency)}
-                </td>
-                <td>{item.nextExecutionDate}</td>
-                <td>{RECURRING_STATUS_LABELS[item.status]}</td>
-                <td>
-                  <RecurringTransferRowMenu
-                    recurringTransfer={item}
-                    isOpen={openMenuSid === item.sid}
-                    onOpenChange={(isOpen) => {
-                      onOpenMenuSid(isOpen ? item.sid : null)
-                      if (isOpen) onOpenForm(null)
-                    }}
-                    onEdit={() => onOpenForm({ kind: 'edit-transfer', item })}
-                    onCanceled={onMutated}
-                  />
-                </td>
+        <div className={styles.tableScroll}>
+          <table className={`${styles.transactionsTable} ${styles.recurringTransfersTable}`}>
+            <colgroup>
+              <col className={styles.colDescription} />
+              <col className={styles.colCategory} />
+              <col className={styles.colAmount} />
+              <col className={styles.colDate} />
+              <col className={styles.colBusinessDay} />
+              <col className={styles.colStatus} />
+              <col className={styles.colActions} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col">Description</th>
+                <th scope="col">Destination account</th>
+                <th scope="col" className={styles.amountHeader}>
+                  Amount
+                </th>
+                <th scope="col">Next execution</th>
+                <th scope="col">Adjust to business day</th>
+                <th scope="col">Status</th>
+                <th scope="col"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.sid}>
+                  <td>{item.description}</td>
+                  <td>{item.destinationAccount.name}</td>
+                  <td className={styles.amountCell}>
+                    {item.amount}
+                    {currencySymbol(item.currency)}
+                  </td>
+                  <td>{item.nextExecutionDate}</td>
+                  <td>{businessDayLabel(item.adjustToBusinessDay)}</td>
+                  <td>
+                    <span className={`${styles.badge} ${item.status === 'ACTIVE' ? styles.badgeActive : ''}`}>
+                      {RECURRING_STATUS_LABELS[item.status]}
+                    </span>
+                  </td>
+                  <td className={styles.actionsCell}>
+                    {isTerminalStatus(item.status) ? (
+                      <span className={styles.mutedText}>
+                        <span aria-hidden="true">—</span>
+                        <span className={styles.srOnly}>No actions available</span>
+                      </span>
+                    ) : (
+                      <RecurringTransferRowMenu
+                        recurringTransfer={item}
+                        isOpen={openMenuSid === item.sid}
+                        onOpenChange={(isOpen) => setOpenMenuSid(isOpen ? item.sid : null)}
+                        onEdit={() => setEditing(item)}
+                        onCanceled={handleMutated}
+                      />
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   )
 }
 
+// Recurring transactions and recurring transfers get their own sub-tab
+// (reusing the same TabBar/TabPanel pattern as Overview's Cash flow /
+// Category breakdown) rather than sitting side by side in a 2-column grid.
+// Side-by-side was tried first, but these two tables are different shapes
+// (7 columns vs 6) and each grows independently when its own edit form
+// opens — halving the available width made them cramped sooner than
+// needed, and the mismatched column heights read worse than two full-width
+// views one click apart.
+//
+// TabPanel fully unmounts an inactive tab's content (not just hides it) —
+// correct for Overview's read-only sub-tabs, but a real data-loss risk
+// here, where a tab can hold an in-progress create/edit form: switching
+// away would silently discard it. Each section reports whether it
+// currently has one open via onFormOpenChange; the inactive tab's trigger
+// is disabled while that's true, rather than allowing the switch and
+// confirming after the fact (no native browser dialog — this app builds
+// its own confirmation UI everywhere else, and the simpler fix here is to
+// not offer the destructive action at all until the form is closed).
 export function RecurringOperationsPanel({ accountSid }: { accountSid: string }) {
-  // Lifted here (rather than owned separately by each section) so opening a
-  // form or row menu in one subsection structurally closes whatever was
-  // open in the other — same single-open-at-a-time rule already enforced
-  // within each subsection's own row menus.
-  const [openForm, setOpenForm] = useState<OpenForm>(null)
-  const [openMenuSid, setOpenMenuSid] = useState<string | null>(null)
-  const [refetchToken, setRefetchToken] = useState(0)
-
-  function handleOpenForm(form: OpenForm) {
-    setOpenForm(form)
-    if (form) setOpenMenuSid(null)
-  }
-
-  function handleOpenMenuSid(sid: string | null) {
-    setOpenMenuSid(sid)
-  }
-
-  function handleMutated() {
-    setOpenForm(null)
-    setRefetchToken((token) => token + 1)
-  }
+  const [activeSubTab, setActiveSubTab] = useState<RecurringSubTab>('transactions')
+  const [hasOpenForm, setHasOpenForm] = useState(false)
 
   return (
     <div>
-      <h2>Recurring operations</h2>
-      <RecurringTransactionsSection
-        accountSid={accountSid}
-        openForm={openForm}
-        onOpenForm={handleOpenForm}
-        openMenuSid={openMenuSid}
-        onOpenMenuSid={handleOpenMenuSid}
-        refetchToken={refetchToken}
-        onMutated={handleMutated}
-      />
-      <RecurringTransfersSection
-        accountSid={accountSid}
-        openForm={openForm}
-        onOpenForm={handleOpenForm}
-        openMenuSid={openMenuSid}
-        onOpenMenuSid={handleOpenMenuSid}
-        refetchToken={refetchToken}
-        onMutated={handleMutated}
-      />
+      <h2 className={styles.srOnly}>Recurring operations</h2>
+
+      <div className={styles.recurringSubTabs}>
+        <TabBar
+          idPrefix="recurring"
+          label="Recurring operations sections"
+          tabs={SUB_TABS}
+          activeTab={activeSubTab}
+          onTabChange={setActiveSubTab}
+          disabledTabs={hasOpenForm ? SUB_TABS.filter((tab) => tab.id !== activeSubTab).map((tab) => tab.id) : []}
+        />
+      </div>
+
+      <TabPanel idPrefix="recurring" tabId="transactions" isActive={activeSubTab === 'transactions'}>
+        <RecurringTransactionsSection accountSid={accountSid} onFormOpenChange={setHasOpenForm} />
+      </TabPanel>
+      <TabPanel idPrefix="recurring" tabId="transfers" isActive={activeSubTab === 'transfers'}>
+        <RecurringTransfersSection accountSid={accountSid} onFormOpenChange={setHasOpenForm} />
+      </TabPanel>
     </div>
   )
 }

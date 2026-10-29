@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ApiError } from '../../../shared/api/errors'
 import { isTerminalStatus } from '../recurring/types'
+import { RecurringRowMenu } from '../recurring/RecurringRowMenu'
 import { cancelRecurringTransfer } from './api'
 import type { RecurringTransfer } from './types'
 
@@ -47,46 +48,21 @@ export function RecurringTransferRowMenu({
   }
 
   return (
-    <div>
-      <button
-        type="button"
-        onClick={() => onOpenChange(!isOpen)}
-        aria-expanded={isOpen}
-        aria-label="Recurring transfer actions"
-      >
-        ☰
-      </button>
-
-      {error && <p role="alert">{error}</p>}
-
-      {isOpen && !isConfirmingCancel && (
-        <div>
-          <button
-            type="button"
-            onClick={() => {
-              onOpenChange(false)
-              onEdit()
-            }}
-          >
-            Update
-          </button>
-          <button type="button" onClick={() => setIsConfirmingCancel(true)}>
-            Cancel
-          </button>
-        </div>
-      )}
-
-      {isConfirmingCancel && (
-        <div>
-          <span>Cancel this recurring transfer?</span>
-          <button type="button" onClick={handleCancel} disabled={isCanceling}>
-            {isCanceling ? 'Canceling…' : 'Confirm'}
-          </button>
-          <button type="button" onClick={() => onOpenChange(false)} disabled={isCanceling}>
-            Back
-          </button>
-        </div>
-      )}
-    </div>
+    <RecurringRowMenu
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      triggerLabel="Recurring transfer actions"
+      groupLabel="Actions for this recurring transfer"
+      error={error}
+      isConfirming={isConfirmingCancel}
+      onEdit={onEdit}
+      editLabel="Update"
+      onRequestCancel={() => setIsConfirmingCancel(true)}
+      cancelLabel="Cancel"
+      confirmMessage={`Cancel "${recurringTransfer.description}"?`}
+      onConfirmCancel={handleCancel}
+      onDismissConfirm={() => setIsConfirmingCancel(false)}
+      isCanceling={isCanceling}
+    />
   )
 }

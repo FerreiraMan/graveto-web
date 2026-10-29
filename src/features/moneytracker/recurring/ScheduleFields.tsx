@@ -1,4 +1,5 @@
 import { DAYS_OF_WEEK, FREQUENCIES, FREQUENCY_LABELS, requiresDayOfMonth, requiresDayOfWeek, type Frequency } from './types'
+import styles from '../MoneyTracker.module.css'
 
 // Shared frequency/day-of-month/day-of-week/business-day/date-range fields,
 // used identically by both create forms (transaction, transfer) and both
@@ -40,7 +41,7 @@ export function ScheduleFields({
 }) {
   return (
     <>
-      <div>
+      <div className={styles.field}>
         <label htmlFor={`${idPrefix}-frequency`}>Frequency</label>
         <select
           id={`${idPrefix}-frequency`}
@@ -53,11 +54,11 @@ export function ScheduleFields({
             </option>
           ))}
         </select>
-        {fieldErrors.frequency && <span>{fieldErrors.frequency}</span>}
+        {fieldErrors.frequency && <span className={styles.fieldError}>{fieldErrors.frequency}</span>}
       </div>
 
       {showDayFields && requiresDayOfMonth(frequency) && (
-        <div>
+        <div className={styles.field}>
           <label htmlFor={`${idPrefix}-day-of-month`}>Day of month</label>
           <input
             id={`${idPrefix}-day-of-month`}
@@ -68,12 +69,12 @@ export function ScheduleFields({
             value={dayOfMonth}
             onChange={(e) => onDayOfMonthChange(e.target.value)}
           />
-          {fieldErrors.dayOfMonth && <span>{fieldErrors.dayOfMonth}</span>}
+          {fieldErrors.dayOfMonth && <span className={styles.fieldError}>{fieldErrors.dayOfMonth}</span>}
         </div>
       )}
 
       {showDayFields && requiresDayOfWeek(frequency) && (
-        <div>
+        <div className={styles.field}>
           <label htmlFor={`${idPrefix}-day-of-week`}>Day of week</label>
           <select
             id={`${idPrefix}-day-of-week`}
@@ -90,12 +91,12 @@ export function ScheduleFields({
               </option>
             ))}
           </select>
-          {fieldErrors.dayOfWeek && <span>{fieldErrors.dayOfWeek}</span>}
+          {fieldErrors.dayOfWeek && <span className={styles.fieldError}>{fieldErrors.dayOfWeek}</span>}
         </div>
       )}
 
-      <div>
-        <label htmlFor={`${idPrefix}-adjust-to-business-day`}>
+      <div className={styles.field}>
+        <label htmlFor={`${idPrefix}-adjust-to-business-day`} className={styles.checkboxLabel}>
           <input
             id={`${idPrefix}-adjust-to-business-day`}
             type="checkbox"
@@ -104,10 +105,10 @@ export function ScheduleFields({
           />
           Adjust to nearest business day
         </label>
-        {fieldErrors.adjustToBusinessDay && <span>{fieldErrors.adjustToBusinessDay}</span>}
+        {fieldErrors.adjustToBusinessDay && <span className={styles.fieldError}>{fieldErrors.adjustToBusinessDay}</span>}
       </div>
 
-      <div>
+      <div className={styles.field}>
         <label htmlFor={`${idPrefix}-end-date`}>End date (optional)</label>
         <input
           id={`${idPrefix}-end-date`}
@@ -115,7 +116,7 @@ export function ScheduleFields({
           value={endDate}
           onChange={(e) => onEndDateChange(e.target.value)}
         />
-        {fieldErrors.endDate && <span>{fieldErrors.endDate}</span>}
+        {fieldErrors.endDate && <span className={styles.fieldError}>{fieldErrors.endDate}</span>}
       </div>
     </>
   )

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ApiError } from '../../../shared/api/errors'
 import { isTerminalStatus } from '../recurring/types'
+import { RecurringRowMenu } from '../recurring/RecurringRowMenu'
 import { cancelRecurringTransaction } from './api'
 import type { RecurringTransaction } from './types'
 
@@ -49,46 +50,21 @@ export function RecurringTransactionRowMenu({
   }
 
   return (
-    <div>
-      <button
-        type="button"
-        onClick={() => onOpenChange(!isOpen)}
-        aria-expanded={isOpen}
-        aria-label="Recurring transaction actions"
-      >
-        ☰
-      </button>
-
-      {error && <p role="alert">{error}</p>}
-
-      {isOpen && !isConfirmingCancel && (
-        <div>
-          <button
-            type="button"
-            onClick={() => {
-              onOpenChange(false)
-              onEdit()
-            }}
-          >
-            Update
-          </button>
-          <button type="button" onClick={() => setIsConfirmingCancel(true)}>
-            Cancel
-          </button>
-        </div>
-      )}
-
-      {isConfirmingCancel && (
-        <div>
-          <span>Cancel this recurring transaction?</span>
-          <button type="button" onClick={handleCancel} disabled={isCanceling}>
-            {isCanceling ? 'Canceling…' : 'Confirm'}
-          </button>
-          <button type="button" onClick={() => onOpenChange(false)} disabled={isCanceling}>
-            Back
-          </button>
-        </div>
-      )}
-    </div>
+    <RecurringRowMenu
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      triggerLabel="Recurring transaction actions"
+      groupLabel="Actions for this recurring transaction"
+      error={error}
+      isConfirming={isConfirmingCancel}
+      onEdit={onEdit}
+      editLabel="Update"
+      onRequestCancel={() => setIsConfirmingCancel(true)}
+      cancelLabel="Cancel"
+      confirmMessage={`Cancel "${recurringTransaction.description}"?`}
+      onConfirmCancel={handleCancel}
+      onDismissConfirm={() => setIsConfirmingCancel(false)}
+      isCanceling={isCanceling}
+    />
   )
 }

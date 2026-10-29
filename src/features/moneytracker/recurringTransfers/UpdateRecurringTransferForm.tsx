@@ -11,6 +11,7 @@ import {
 import { ScheduleFields } from '../recurring/ScheduleFields'
 import { updateRecurringTransfer } from './api'
 import type { RecurringTransfer } from './types'
+import styles from '../MoneyTracker.module.css'
 
 export function UpdateRecurringTransferForm({
   recurringTransfer,
@@ -24,7 +25,7 @@ export function UpdateRecurringTransferForm({
   const [description, setDescription] = useState(recurringTransfer.description)
   const [amount, setAmount] = useState(String(recurringTransfer.amount))
   const [frequency, setFrequency] = useState<Frequency>(recurringTransfer.frequency)
-  // See CreateRecurringTransactionForm / UpdateRecurringTransactionForm for
+  // See CreateRecurringTransactionModal / UpdateRecurringTransactionForm for
   // why these start empty and are only sent when frequency actually
   // changes: the API never echoes back the existing dayOfMonth/dayOfWeek,
   // and the backend leaves them untouched when omitted on update.
@@ -73,12 +74,16 @@ export function UpdateRecurringTransferForm({
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h3>Update recurring transfer</h3>
+    <form className={styles.formFadeIn} onSubmit={handleSubmit}>
+      <h3 className={styles.srOnly}>Update recurring transfer</h3>
 
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p className={styles.errorText} role="alert">
+          {error}
+        </p>
+      )}
 
-      <div>
+      <div className={styles.field}>
         <label htmlFor="update-recurring-transfer-description">Description</label>
         <input
           id="update-recurring-transfer-description"
@@ -87,10 +92,10 @@ export function UpdateRecurringTransferForm({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
-        {fieldErrors.description && <span>{fieldErrors.description}</span>}
+        {fieldErrors.description && <span className={styles.fieldError}>{fieldErrors.description}</span>}
       </div>
 
-      <div>
+      <div className={styles.field}>
         <label htmlFor="update-recurring-transfer-amount">Amount</label>
         <input
           id="update-recurring-transfer-amount"
@@ -101,7 +106,7 @@ export function UpdateRecurringTransferForm({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
         />
-        {fieldErrors.amount && <span>{fieldErrors.amount}</span>}
+        {fieldErrors.amount && <span className={styles.fieldError}>{fieldErrors.amount}</span>}
       </div>
 
       <ScheduleFields
@@ -124,10 +129,10 @@ export function UpdateRecurringTransferForm({
         showDayFields={frequencyChanged}
       />
       {frequencyChanged && (requiresDayOfMonth(frequency) || requiresDayOfWeek(frequency)) && (
-        <p>Changing frequency requires picking a new day above.</p>
+        <p className={styles.mutedText}>Changing frequency requires picking a new day above.</p>
       )}
 
-      <div>
+      <div className={styles.field}>
         <label htmlFor="update-recurring-transfer-next-execution">Next execution date</label>
         <input
           id="update-recurring-transfer-next-execution"
@@ -135,10 +140,10 @@ export function UpdateRecurringTransferForm({
           value={nextExecutionDate}
           onChange={(e) => setNextExecutionDate(e.target.value)}
         />
-        {fieldErrors.nextExecutionDate && <span>{fieldErrors.nextExecutionDate}</span>}
+        {fieldErrors.nextExecutionDate && <span className={styles.fieldError}>{fieldErrors.nextExecutionDate}</span>}
       </div>
 
-      <div>
+      <div className={styles.field}>
         <label htmlFor="update-recurring-transfer-status">Status</label>
         <select
           id="update-recurring-transfer-status"
@@ -151,15 +156,21 @@ export function UpdateRecurringTransferForm({
             </option>
           ))}
         </select>
-        {fieldErrors.status && <span>{fieldErrors.status}</span>}
+        {fieldErrors.status && <span className={styles.fieldError}>{fieldErrors.status}</span>}
       </div>
 
-      <button type="submit" disabled={isSubmitting || !amount || !description.trim() || !isScheduleValid}>
-        {isSubmitting ? 'Saving…' : 'Save changes'}
-      </button>
-      <button type="button" onClick={onCancel} disabled={isSubmitting}>
-        Cancel
-      </button>
+      <div className={styles.formActions}>
+        <button
+          type="submit"
+          className={styles.primaryButton}
+          disabled={isSubmitting || !amount || !description.trim() || !isScheduleValid}
+        >
+          {isSubmitting ? 'Saving…' : 'Save changes'}
+        </button>
+        <button type="button" className={styles.secondaryButton} onClick={onCancel} disabled={isSubmitting}>
+          Cancel
+        </button>
+      </div>
     </form>
   )
 }

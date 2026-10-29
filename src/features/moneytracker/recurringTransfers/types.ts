@@ -9,6 +9,10 @@ export interface RecurringTransfer {
   amount: number
   currency: string
   frequency: Frequency
+  // See RecurringTransaction.adjustToBusinessDay — same unverified-backend
+  // assumption, same reasoning for staying optional rather than asserting
+  // always-present.
+  adjustToBusinessDay?: boolean
   nextExecutionDate: string
   status: RecurringOperationStatus
   endDate?: string

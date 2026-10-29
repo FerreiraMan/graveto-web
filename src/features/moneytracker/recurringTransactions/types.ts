@@ -15,6 +15,15 @@ export interface RecurringTransaction {
   currency: string
   transactionType: TransactionType
   frequency: Frequency
+  // Optional, not asserted as always-present: this field was added to the
+  // response type based on the assumption the backend returns it on GET
+  // the same way it accepts it on create/update, but that hasn't been
+  // verified against a live response. A non-optional `boolean` would
+  // silently render 'No' for a field the backend never actually sent —
+  // a confident wrong answer, indistinguishable from a real 'No', which
+  // is worse than visibly rendering 'Unknown' when the frontend genuinely
+  // doesn't know.
+  adjustToBusinessDay?: boolean
   nextExecutionDate: string
   status: RecurringOperationStatus
   endDate?: string

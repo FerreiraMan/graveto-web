@@ -18,12 +18,18 @@ export function TabBar<T extends string>({
   tabs,
   activeTab,
   onTabChange,
+  disabledTabs = [],
 }: {
   idPrefix: string
   label: string
   tabs: TabBarItem<T>[]
   activeTab: T
   onTabChange: (tab: T) => void
+  // Disables specific inactive tabs rather than letting the switch happen —
+  // used where a tab's content can hold unsaved state (an open form) that
+  // would otherwise be silently discarded on switch, since TabPanel fully
+  // unmounts inactive content rather than just hiding it.
+  disabledTabs?: T[]
 }) {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
@@ -32,31 +38,38 @@ export function TabBar<T extends string>({
     event.preventDefault()
     const nextIndex = event.key === 'ArrowRight' ? (index + 1) % tabs.length : (index - 1 + tabs.length) % tabs.length
     const nextTab = tabs[nextIndex]
+    if (disabledTabs.includes(nextTab.id)) return
     onTabChange(nextTab.id)
     tabRefs.current[nextTab.id]?.focus()
   }
 
   return (
     <div className={styles.accountTabs} role="tablist" aria-label={label}>
-      {tabs.map((tab, index) => (
-        <button
-          key={tab.id}
-          ref={(el) => {
-            tabRefs.current[tab.id] = el
-          }}
-          type="button"
-          role="tab"
-          id={`${idPrefix}-tab-${tab.id}`}
-          aria-selected={activeTab === tab.id}
-          aria-controls={`${idPrefix}-tabpanel-${tab.id}`}
-          tabIndex={activeTab === tab.id ? 0 : -1}
-          className={`${styles.accountTab} ${activeTab === tab.id ? styles.accountTabActive : ''}`}
-          onClick={() => onTabChange(tab.id)}
-          onKeyDown={(e) => handleKeyDown(e, index)}
-        >
-          {tab.label}
-        </button>
-      ))}
+      {tabs.map((tab, index) => {
+        const isDisabled = disabledTabs.includes(tab.id)
+        return (
+          <button
+            key={tab.id}
+            ref={(el) => {
+              tabRefs.current[tab.id] = el
+            }}
+            type="button"
+            role="tab"
+            id={`${idPrefix}-tab-${tab.id}`}
+            aria-selected={activeTab === tab.id}
+            aria-controls={`${idPrefix}-tabpanel-${tab.id}`}
+            aria-disabled={isDisabled}
+            tabIndex={activeTab === tab.id ? 0 : -1}
+            className={`${styles.accountTab} ${activeTab === tab.id ? styles.accountTabActive : ''}`}
+            onClick={() => {
+              if (!isDisabled) onTabChange(tab.id)
+            }}
+            onKeyDown={(e) => handleKeyDown(e, index)}
+          >
+            {tab.label}
+          </button>
+        )
+      })}
     </div>
   )
 }
