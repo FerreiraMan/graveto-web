@@ -17,10 +17,12 @@ export function UpdateRecurringTransferForm({
   recurringTransfer,
   onUpdated,
   onCancel,
+  onSubmittingChange,
 }: {
   recurringTransfer: RecurringTransfer
   onUpdated: () => void
   onCancel: () => void
+  onSubmittingChange?: (isSubmitting: boolean) => void
 }) {
   const [description, setDescription] = useState(recurringTransfer.description)
   const [amount, setAmount] = useState(String(recurringTransfer.amount))
@@ -47,6 +49,7 @@ export function UpdateRecurringTransferForm({
     event.preventDefault()
     setFieldErrors({})
     setIsSubmitting(true)
+    onSubmittingChange?.(true)
     try {
       await updateRecurringTransfer(recurringTransfer.sid, {
         description: description.trim() || undefined,
@@ -68,12 +71,18 @@ export function UpdateRecurringTransferForm({
       }
     } finally {
       setIsSubmitting(false)
+      onSubmittingChange?.(false)
     }
   }
 
   return (
     <form className={styles.formFadeIn} onSubmit={handleSubmit}>
-      <h3 className={styles.srOnly}>Update recurring transfer</h3>
+      <div className={styles.field}>
+        <span className={styles.fieldStaticLabel}>Destination account</span>
+        <p className={styles.mutedText}>
+          Current destination: {recurringTransfer.destinationAccount.name} (can't be changed).
+        </p>
+      </div>
 
       <div className={styles.field}>
         <label htmlFor="update-recurring-transfer-description">Description</label>
@@ -81,6 +90,7 @@ export function UpdateRecurringTransferForm({
           id="update-recurring-transfer-description"
           type="text"
           required
+          autoFocus
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />

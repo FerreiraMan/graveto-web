@@ -184,10 +184,11 @@ export function AccountRow({ account, isExpanded, onAccountUpdated, onToggle }: 
                   <ul className={styles.userList}>
                     {sortByOwnerFirst(details.users).map((user) => (
                       <li key={user.sid}>
-                        {user.email ?? user.sid} —{' '}
+                        {user.email ?? user.sid} (
                         {user.role in MEMBERSHIP_ROLE_LABELS
                           ? MEMBERSHIP_ROLE_LABELS[user.role as MembershipRole]
                           : user.role}
+                        )
                       </li>
                     ))}
                   </ul>

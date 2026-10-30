@@ -59,7 +59,7 @@ export function DateTimeField({
         <div className={styles.timeOfDay}>
           <select
             id={`${idPrefix}-hour`}
-            aria-label={`${label} — hour (24h)`}
+            aria-label={`${label}, hour (24h)`}
             value={hour}
             onChange={(e) => handleHourChange(e.target.value)}
           >
@@ -75,7 +75,7 @@ export function DateTimeField({
             type="text"
             inputMode="numeric"
             maxLength={2}
-            aria-label={`${label} — minute`}
+            aria-label={`${label}, minute`}
             value={minute}
             onChange={(e) => handleMinuteChange(e.target.value)}
           />

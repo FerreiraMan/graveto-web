@@ -16,7 +16,7 @@ import {
   type TransactionStatus,
 } from './types'
 import { CreateTransactionModal } from './CreateTransactionModal'
-import { UpdateTransactionForm } from './UpdateTransactionForm'
+import { UpdateTransactionModal } from './UpdateTransactionModal'
 import { UpdateTransferForm } from '../transfers/UpdateTransferForm'
 import { TransactionRowMenu } from './TransactionRowMenu'
 import styles from '../MoneyTracker.module.css'
@@ -245,10 +245,10 @@ export function AccountTransactionsPanel({
       )}
 
       {editingTransaction && !isTransferLeg(editingTransaction) && (
-        <UpdateTransactionForm
+        <UpdateTransactionModal
           transaction={editingTransaction}
           onUpdated={handleMutated}
-          onCancel={() => setEditingTransaction(null)}
+          onClose={() => setEditingTransaction(null)}
         />
       )}
 
@@ -404,7 +404,7 @@ export function AccountTransactionsPanel({
                   return (
                     <tr key={transaction.sid} className={isDeleted ? styles.transactionRowDeleted : ''}>
                       <td>{transaction.occurredAt.slice(0, 10)}</td>
-                      <td>{transaction.description ?? '—'}</td>
+                      <td>{transaction.description ?? '-'}</td>
                       <td>{transaction.category.name}</td>
                       <td>{TRANSACTION_TYPE_LABELS[transaction.type]}</td>
                       <td className={`${styles.amountCell} ${amountClassName}`}>

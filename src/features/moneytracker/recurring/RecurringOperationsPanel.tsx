@@ -7,12 +7,12 @@ import { currencySymbol } from '../currency'
 import { fetchRecurringTransactions } from '../recurringTransactions/api'
 import type { RecurringTransaction } from '../recurringTransactions/types'
 import { CreateRecurringTransactionModal } from '../recurringTransactions/CreateRecurringTransactionModal'
-import { UpdateRecurringTransactionForm } from '../recurringTransactions/UpdateRecurringTransactionForm'
+import { UpdateRecurringTransactionModal } from '../recurringTransactions/UpdateRecurringTransactionModal'
 import { RecurringTransactionRowMenu } from '../recurringTransactions/RecurringTransactionRowMenu'
 import { fetchRecurringTransfersForAccount } from '../recurringTransfers/api'
 import type { RecurringTransfer } from '../recurringTransfers/types'
 import { CreateRecurringTransferModal } from '../recurringTransfers/CreateRecurringTransferModal'
-import { UpdateRecurringTransferForm } from '../recurringTransfers/UpdateRecurringTransferForm'
+import { UpdateRecurringTransferModal } from '../recurringTransfers/UpdateRecurringTransferModal'
 import { RecurringTransferRowMenu } from '../recurringTransfers/RecurringTransferRowMenu'
 import { TabBar, TabPanel } from '../shared/TabBar'
 import styles from '../MoneyTracker.module.css'
@@ -26,6 +26,17 @@ const ALL_RECURRING_STATUSES: RecurringOperationStatus[] = [...EDITABLE_RECURRIN
 function businessDayLabel(adjustToBusinessDay: boolean | undefined): string {
   if (adjustToBusinessDay === undefined) return 'Unknown'
   return adjustToBusinessDay ? 'Yes' : 'No'
+}
+
+// Unlike adjustToBusinessDay, endDate has always been genuinely optional
+// by design (every create/update form already treats an empty end-date
+// input as "no end date") — so absent here unambiguously means the
+// operation never ends, not an unverified-backend gap. Rendered as a
+// plain dash, not "Unknown", since there's no missing-data ambiguity to
+// flag — same placeholder convention as every other empty cell in these
+// tables (e.g. a transaction with no description).
+function endDateLabel(endDate: string | undefined): string {
+  return endDate ?? '-'
 }
 
 type RecurringSubTab = 'transactions' | 'transfers'
@@ -95,7 +106,7 @@ function RecurringTransactionsSection({
       )}
 
       {editing && (
-        <UpdateRecurringTransactionForm recurringTransaction={editing} onUpdated={handleMutated} onCancel={() => setEditing(null)} />
+        <UpdateRecurringTransactionModal recurringTransaction={editing} onUpdated={handleMutated} onClose={() => setEditing(null)} />
       )}
 
       <div className={styles.recurringFilterRow}>
@@ -130,6 +141,7 @@ function RecurringTransactionsSection({
               <col className={styles.colAmount} />
               <col className={styles.colDate} />
               <col className={styles.colBusinessDay} />
+              <col className={styles.colDate} />
               <col className={styles.colStatus} />
               <col className={styles.colActions} />
             </colgroup>
@@ -143,6 +155,7 @@ function RecurringTransactionsSection({
                 </th>
                 <th scope="col">Next execution</th>
                 <th scope="col">Adjust to business day</th>
+                <th scope="col">Ends</th>
                 <th scope="col">Status</th>
                 <th scope="col"></th>
               </tr>
@@ -159,6 +172,7 @@ function RecurringTransactionsSection({
                   </td>
                   <td>{item.nextExecutionDate}</td>
                   <td>{businessDayLabel(item.adjustToBusinessDay)}</td>
+                  <td>{endDateLabel(item.endDate)}</td>
                   <td>
                     <span className={`${styles.badge} ${item.status === 'ACTIVE' ? styles.badgeActive : ''}`}>
                       {RECURRING_STATUS_LABELS[item.status]}
@@ -167,7 +181,7 @@ function RecurringTransactionsSection({
                   <td className={styles.actionsCell}>
                     {isTerminalStatus(item.status) ? (
                       <span className={styles.mutedText}>
-                        <span aria-hidden="true">—</span>
+                        <span aria-hidden="true">-</span>
                         <span className={styles.srOnly}>No actions available</span>
                       </span>
                     ) : (
@@ -264,7 +278,7 @@ function RecurringTransfersSection({
       )}
 
       {editing && (
-        <UpdateRecurringTransferForm recurringTransfer={editing} onUpdated={handleMutated} onCancel={() => setEditing(null)} />
+        <UpdateRecurringTransferModal recurringTransfer={editing} onUpdated={handleMutated} onClose={() => setEditing(null)} />
       )}
 
       <div className={styles.recurringFilterRow}>
@@ -316,6 +330,7 @@ function RecurringTransfersSection({
               <col className={styles.colAmount} />
               <col className={styles.colDate} />
               <col className={styles.colBusinessDay} />
+              <col className={styles.colDate} />
               <col className={styles.colStatus} />
               <col className={styles.colActions} />
             </colgroup>
@@ -328,6 +343,7 @@ function RecurringTransfersSection({
                 </th>
                 <th scope="col">Next execution</th>
                 <th scope="col">Adjust to business day</th>
+                <th scope="col">Ends</th>
                 <th scope="col">Status</th>
                 <th scope="col"></th>
               </tr>
@@ -343,6 +359,7 @@ function RecurringTransfersSection({
                   </td>
                   <td>{item.nextExecutionDate}</td>
                   <td>{businessDayLabel(item.adjustToBusinessDay)}</td>
+                  <td>{endDateLabel(item.endDate)}</td>
                   <td>
                     <span className={`${styles.badge} ${item.status === 'ACTIVE' ? styles.badgeActive : ''}`}>
                       {RECURRING_STATUS_LABELS[item.status]}
@@ -351,7 +368,7 @@ function RecurringTransfersSection({
                   <td className={styles.actionsCell}>
                     {isTerminalStatus(item.status) ? (
                       <span className={styles.mutedText}>
-                        <span aria-hidden="true">—</span>
+                        <span aria-hidden="true">-</span>
                         <span className={styles.srOnly}>No actions available</span>
                       </span>
                     ) : (
