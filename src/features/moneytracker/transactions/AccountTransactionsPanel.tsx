@@ -3,7 +3,6 @@ import { fetchAllCategories } from '../categories/api'
 import { CategoryPicker } from '../categories/CategoryPicker'
 import { buildCategoryTree } from '../categories/categoryTree'
 import { ALL_TRANSACTION_TYPES, TRANSACTION_TYPE_LABELS, type Category, type TransactionType } from '../categories/types'
-import { ApiError } from '../../../shared/api/errors'
 import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue'
 import { currencySymbol } from '../currency'
 import { fetchTransactions } from './api'
@@ -99,7 +98,6 @@ export function AccountTransactionsPanel({
   const [transactions, setTransactions] = useState<Transaction[] | null>(null)
   const [totalPages, setTotalPages] = useState(0)
   const [totalElements, setTotalElements] = useState(0)
-  const [error, setError] = useState<string | null>(null)
 
   // Every filter change (except page itself) should reset back to page 0 —
   // otherwise a user filtering from e.g. page 3 could land on an out-of-range
@@ -135,7 +133,6 @@ export function AccountTransactionsPanel({
   useEffect(() => {
     let cancelled = false
     setTransactions(null)
-    setError(null)
 
     const filters: TransactionFilterRequest = { accountSid }
     if (categorySid) filters.categorySid = categorySid
@@ -151,8 +148,12 @@ export function AccountTransactionsPanel({
         setTotalPages(result.totalPages)
         setTotalElements(result.totalElements)
       })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Failed to load transactions.')
+      .catch(() => {
+        // Non-field failures already surface via the global notification
+        // toast. Settling to an empty list (rather than leaving
+        // `transactions` null forever) stops the view from being stuck on
+        // "Loading…" indefinitely after a failed request.
+        if (!cancelled) setTransactions([])
       })
 
     return () => {
@@ -338,9 +339,7 @@ export function AccountTransactionsPanel({
         </div>
       )}
 
-      {error && <p role="alert">{error}</p>}
-
-      {transactions === null && !error && <p>Loading…</p>}
+      {transactions === null && <p>Loading…</p>}
 
       {transactions !== null && transactions.length === 0 && (
         <div className={styles.emptyStatePlain}>

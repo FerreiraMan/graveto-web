@@ -33,7 +33,6 @@ export function CreateTransferForm({
   const [accounts, setAccounts] = useState<Account[]>([])
   const [destinationAccountSid, setDestinationAccountSid] = useState('')
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -53,7 +52,6 @@ export function CreateTransferForm({
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    setError(null)
     setFieldErrors({})
     setIsSubmitting(true)
     onSubmittingChange?.(true)
@@ -67,10 +65,10 @@ export function CreateTransferForm({
       })
       onCreated()
     } catch (err) {
+      // Field-level validation errors render inline next to their own
+      // input. Any other failure already surfaces via the global toast.
       if (err instanceof ApiError && err.problem?.invalid_params) {
         setFieldErrors(err.problem.invalid_params)
-      } else {
-        setError(err instanceof ApiError ? err.message : 'Failed to create transfer.')
       }
     } finally {
       setIsSubmitting(false)
@@ -80,12 +78,6 @@ export function CreateTransferForm({
 
   return (
     <form className={styles.formFadeIn} onSubmit={handleSubmit}>
-      {error && (
-        <p className={styles.errorText} role="alert">
-          {error}
-        </p>
-      )}
-
       <div className={styles.field}>
         <label htmlFor="transfer-destination">To account</label>
         <select

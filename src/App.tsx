@@ -11,6 +11,7 @@ import { AccountListPage } from './features/moneytracker/accounts/AccountListPag
 import { CategoryListPage } from './features/moneytracker/categories/CategoryListPage'
 import { CreateCategoryPage } from './features/moneytracker/categories/CreateCategoryPage'
 import { ProtectedRoute } from './routes/ProtectedRoute'
+import { GuestRoute } from './routes/GuestRoute'
 import { NotificationProvider } from './shared/components/NotificationContext'
 import { NotificationList } from './shared/components/NotificationList'
 import { useNotifications } from './shared/components/useNotifications'
@@ -36,6 +37,15 @@ function Nav() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [confirmingLogout])
 
+  // A logout actually ending the session should also close any pending
+  // confirm UI — Nav/HomePage aren't unmounted on logout (they just stop
+  // rendering their contents while !isAuthenticated), so without this the
+  // next login would resume with the confirm prompt already expanded.
+  function handleLogout() {
+    setConfirmingLogout(false)
+    logout()
+  }
+
   // The hub at "/" *is* the app's primary navigation (Money Tracker /
   // Portfolio / Logout as its own rows) — showing this bar there too
   // would be a second, redundant nav. It only appears once the user has
@@ -56,7 +66,7 @@ function Nav() {
         confirming={confirmingLogout}
         onRequestConfirm={() => setConfirmingLogout(true)}
         onCancel={() => setConfirmingLogout(false)}
-        onLogout={logout}
+        onLogout={handleLogout}
       />
     </nav>
   )
@@ -88,8 +98,10 @@ function App() {
           <Nav />
           <main>
             <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
+              <Route element={<GuestRoute />}>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+              </Route>
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/moneytracker" element={<MoneyTrackerLayout />}>

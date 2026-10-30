@@ -1,21 +1,26 @@
 import { useEffect, useState } from 'react'
-import { ApiError } from '../../../shared/api/errors'
 import { fetchTransfer } from './api'
 import type { Transfer } from './types'
 
 export function TransferDetails({ correlationId, accountSid }: { correlationId: string; accountSid: string }) {
   const [transfer, setTransfer] = useState<Transfer | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     let cancelled = false
+    setTransfer(null)
+    setFailed(false)
 
     fetchTransfer(correlationId)
       .then((result) => {
         if (!cancelled) setTransfer(result)
       })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Failed to load transfer details.')
+      .catch(() => {
+        // Non-field failures already surface via the global notification
+        // toast. `failed` here only exists so this panel settles out of
+        // "Loading…" rather than hanging on it indefinitely — there's no
+        // natural inline retry for a detail panel this small.
+        if (!cancelled) setFailed(true)
       })
 
     return () => {
@@ -23,7 +28,7 @@ export function TransferDetails({ correlationId, accountSid }: { correlationId: 
     }
   }, [correlationId])
 
-  if (error) return <p role="alert">{error}</p>
+  if (failed) return null
   if (!transfer) return <p>Loading…</p>
 
   // Whichever leg isn't the account this panel belongs to is the

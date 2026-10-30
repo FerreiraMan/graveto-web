@@ -29,7 +29,6 @@ export function CreateRecurringTransferModal({
   const [adjustToBusinessDay, setAdjustToBusinessDay] = useState(true)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
@@ -96,7 +95,6 @@ export function CreateRecurringTransferModal({
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    setError(null)
     setFieldErrors({})
     setIsSubmitting(true)
     try {
@@ -114,10 +112,10 @@ export function CreateRecurringTransferModal({
       })
       onCreated()
     } catch (err) {
+      // Field-level validation errors render inline next to their own
+      // input. Any other failure already surfaces via the global toast.
       if (err instanceof ApiError && err.problem?.invalid_params) {
         setFieldErrors(err.problem.invalid_params)
-      } else {
-        setError(err instanceof ApiError ? err.message : 'Failed to create recurring transfer.')
       }
     } finally {
       setIsSubmitting(false)
@@ -143,12 +141,6 @@ export function CreateRecurringTransferModal({
         </h2>
 
         <form onSubmit={handleSubmit}>
-          {error && (
-            <p className={styles.errorText} role="alert">
-              {error}
-            </p>
-          )}
-
           <div className={styles.field}>
             <label htmlFor="recurring-transfer-destination">To account</label>
             <select

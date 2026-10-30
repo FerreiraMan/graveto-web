@@ -16,7 +16,6 @@ export function RecurringRowMenu({
   onOpenChange,
   triggerLabel,
   groupLabel,
-  error,
   isConfirming,
   onEdit,
   editLabel,
@@ -31,7 +30,6 @@ export function RecurringRowMenu({
   onOpenChange: (isOpen: boolean) => void
   triggerLabel: string
   groupLabel: string
-  error: string | null
   isConfirming: boolean
   onEdit: () => void
   editLabel: string
@@ -131,12 +129,6 @@ export function RecurringRowMenu({
                 : { top: position.y, right: position.right }
             }
           >
-            {error && (
-              <p className={styles.errorText} role="alert">
-                {error}
-              </p>
-            )}
-
             {!isConfirming && (
               <div className={styles.rowMenuItems}>
                 <button

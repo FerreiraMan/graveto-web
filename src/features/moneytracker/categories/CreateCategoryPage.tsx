@@ -16,7 +16,6 @@ export function CreateCategoryPage() {
   const [displayName, setDisplayName] = useState('')
   const [parentSid, setParentSid] = useState('')
   const [transactionType, setTransactionType] = useState<TransactionType>('EXPENSE')
-  const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -45,7 +44,6 @@ export function CreateCategoryPage() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    setError(null)
     setFieldErrors({})
     setIsSubmitting(true)
     try {
@@ -57,10 +55,10 @@ export function CreateCategoryPage() {
       })
       navigate('/moneytracker/categories')
     } catch (err) {
+      // Field-level validation errors render inline next to their own
+      // input. Any other failure already surfaces via the global toast.
       if (err instanceof ApiError && err.problem?.invalid_params) {
         setFieldErrors(err.problem.invalid_params)
-      } else {
-        setError(err instanceof ApiError ? err.message : 'Failed to create category.')
       }
     } finally {
       setIsSubmitting(false)
@@ -72,8 +70,6 @@ export function CreateCategoryPage() {
   return (
     <form onSubmit={handleSubmit}>
       <h1>Create category</h1>
-
-      {error && <p role="alert">{error}</p>}
 
       <div>
         <label htmlFor="accountSid">Account</label>

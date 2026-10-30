@@ -38,7 +38,14 @@ export async function apiRequest<TResponse>(
 
     const handlers = getGlobalErrorHandlers()
     if (handlers) {
-      if (response.status === 401) {
+      if (response.status === 401 && auth) {
+        // A 401 on an authenticated request means the session itself is
+        // no longer valid (expired/revoked token) — that's the one case
+        // this app force-logs-out for. A 401 on an unauthenticated
+        // request (login, register) just means the credentials were
+        // wrong; there's no session to invalidate, and onUnauthorized
+        // would otherwise swallow the error here instead of letting it
+        // reach notify()/the caller's own inline handling below.
         handlers.onUnauthorized()
       } else if (!problem?.invalid_params) {
         // Field-level validation errors are handled inline by the calling form.

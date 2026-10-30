@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { ApiError } from '../../../shared/api/errors'
 import { isTerminalStatus } from '../recurring/types'
 import { RecurringRowMenu } from '../recurring/RecurringRowMenu'
 import { cancelRecurringTransfer } from './api'
@@ -20,25 +19,22 @@ export function RecurringTransferRowMenu({
 }) {
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false)
   const [isCanceling, setIsCanceling] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const isTerminal = isTerminalStatus(recurringTransfer.status)
 
   useEffect(() => {
     if (!isOpen) {
       setIsConfirmingCancel(false)
-      setError(null)
     }
   }, [isOpen])
 
   async function handleCancel() {
     setIsCanceling(true)
-    setError(null)
     try {
       await cancelRecurringTransfer(recurringTransfer.sid)
       onCanceled()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to cancel.')
+    } catch {
+      // Non-field failures already surface via the global notification toast.
       setIsCanceling(false)
     }
   }
@@ -53,7 +49,6 @@ export function RecurringTransferRowMenu({
       onOpenChange={onOpenChange}
       triggerLabel="Recurring transfer actions"
       groupLabel="Actions for this recurring transfer"
-      error={error}
       isConfirming={isConfirmingCancel}
       onEdit={onEdit}
       editLabel="Update"

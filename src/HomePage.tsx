@@ -47,6 +47,14 @@ export function HomePage() {
   const greeting = greetingForHour(new Date().getHours())
   const title = email ? `${greeting}, ${nameFromEmail(email)}` : greeting
 
+  // Same reasoning as Nav's handleLogout: this component isn't unmounted
+  // across a logout/login cycle, so without resetting here a re-login
+  // would land back on the hub with the confirm prompt already expanded.
+  function handleLogout() {
+    setConfirmingLogout(false)
+    logout()
+  }
+
   return (
     <div className={styles.page}>
       <div className={styles.panel}>
@@ -57,7 +65,7 @@ export function HomePage() {
             confirming={confirmingLogout}
             onRequestConfirm={() => setConfirmingLogout(true)}
             onCancel={() => setConfirmingLogout(false)}
-            onLogout={logout}
+            onLogout={handleLogout}
           />
         </div>
 

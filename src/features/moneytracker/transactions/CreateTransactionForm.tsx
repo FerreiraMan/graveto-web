@@ -39,7 +39,6 @@ export function CreateTransactionForm({
   const debouncedCategorySearch = useDebouncedValue(categorySearch, 400)
   const [hasLoadedCategoriesOnce, setHasLoadedCategoriesOnce] = useState(false)
   const [transactionType, setTransactionType] = useState<TransactionType>('EXPENSE')
-  const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -80,7 +79,6 @@ export function CreateTransactionForm({
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    setError(null)
     setFieldErrors({})
     setIsSubmitting(true)
     onSubmittingChange?.(true)
@@ -95,10 +93,10 @@ export function CreateTransactionForm({
       })
       onCreated()
     } catch (err) {
+      // Field-level validation errors render inline next to their own
+      // input. Any other failure already surfaces via the global toast.
       if (err instanceof ApiError && err.problem?.invalid_params) {
         setFieldErrors(err.problem.invalid_params)
-      } else {
-        setError(err instanceof ApiError ? err.message : 'Failed to create transaction.')
       }
     } finally {
       setIsSubmitting(false)
@@ -108,12 +106,6 @@ export function CreateTransactionForm({
 
   return (
     <form className={styles.formFadeIn} onSubmit={handleSubmit}>
-      {error && (
-        <p className={styles.errorText} role="alert">
-          {error}
-        </p>
-      )}
-
       <div className={styles.field}>
         <label htmlFor="transaction-type">Type</label>
         <select
