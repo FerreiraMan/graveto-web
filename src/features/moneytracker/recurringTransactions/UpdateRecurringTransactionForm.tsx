@@ -17,10 +17,12 @@ export function UpdateRecurringTransactionForm({
   recurringTransaction,
   onUpdated,
   onCancel,
+  onSubmittingChange,
 }: {
   recurringTransaction: RecurringTransaction
   onUpdated: () => void
   onCancel: () => void
+  onSubmittingChange?: (isSubmitting: boolean) => void
 }) {
   const [description, setDescription] = useState(recurringTransaction.description)
   const [amount, setAmount] = useState(String(recurringTransaction.amount))
@@ -48,6 +50,7 @@ export function UpdateRecurringTransactionForm({
     event.preventDefault()
     setFieldErrors({})
     setIsSubmitting(true)
+    onSubmittingChange?.(true)
     try {
       await updateRecurringTransaction(recurringTransaction.sid, {
         description: description.trim() || undefined,
@@ -69,12 +72,16 @@ export function UpdateRecurringTransactionForm({
       }
     } finally {
       setIsSubmitting(false)
+      onSubmittingChange?.(false)
     }
   }
 
   return (
     <form className={styles.formFadeIn} onSubmit={handleSubmit}>
-      <h3 className={styles.srOnly}>Update recurring transaction</h3>
+      <div className={styles.field}>
+        <span className={styles.fieldStaticLabel}>Category</span>
+        <p className={styles.mutedText}>Current category: {recurringTransaction.category.name} (can't be changed).</p>
+      </div>
 
       <div className={styles.field}>
         <label htmlFor="update-recurring-transaction-description">Description</label>
@@ -82,6 +89,7 @@ export function UpdateRecurringTransactionForm({
           id="update-recurring-transaction-description"
           type="text"
           required
+          autoFocus
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
