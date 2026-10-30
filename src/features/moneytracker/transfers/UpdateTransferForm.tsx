@@ -21,13 +21,11 @@ export function UpdateTransferForm({
   const [amount, setAmount] = useState(String(transaction.amount))
   const [description, setDescription] = useState(transaction.description ?? '')
   const [occurredAt, setOccurredAt] = useState(toDateTimeLocal(transaction.occurredAt))
-  const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    setError(null)
     setFieldErrors({})
     setIsSubmitting(true)
     try {
@@ -40,10 +38,10 @@ export function UpdateTransferForm({
       })
       onUpdated()
     } catch (err) {
+      // Field-level validation errors render inline next to their own
+      // input. Any other failure already surfaces via the global toast.
       if (err instanceof ApiError && err.problem?.invalid_params) {
         setFieldErrors(err.problem.invalid_params)
-      } else {
-        setError(err instanceof ApiError ? err.message : 'Failed to update transfer.')
       }
     } finally {
       setIsSubmitting(false)
@@ -53,8 +51,6 @@ export function UpdateTransferForm({
   return (
     <form onSubmit={handleSubmit}>
       <h3>Update transfer</h3>
-
-      {error && <p role="alert">{error}</p>}
 
       <div>
         <label htmlFor="update-transfer-amount">Amount</label>

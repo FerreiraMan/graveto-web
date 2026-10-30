@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ApiError } from '../../../shared/api/errors'
 import { deleteTransaction } from './api'
 import { deleteTransfer } from '../transfers/api'
 import { TransferDetails } from '../transfers/TransferDetails'
@@ -26,7 +25,6 @@ export function TransactionRowMenu({
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [position, setPosition] = useState<{ y: number; right: number; openUpward: boolean } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
@@ -75,7 +73,6 @@ export function TransactionRowMenu({
     if (!isOpen) {
       setIsConfirmingDelete(false)
       setShowDetails(false)
-      setError(null)
     }
   }, [isOpen])
 
@@ -127,7 +124,6 @@ export function TransactionRowMenu({
 
   async function handleDelete() {
     setIsDeleting(true)
-    setError(null)
     try {
       // Transfer-linked transactions are rejected by the transaction delete
       // endpoint — the backend requires deleting the transfer as a whole via
@@ -139,8 +135,8 @@ export function TransactionRowMenu({
       }
       onOpenChange(false)
       onDeleted()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to delete.')
+    } catch {
+      // Non-field failures already surface via the global notification toast.
       setIsDeleting(false)
     }
   }
@@ -172,12 +168,6 @@ export function TransactionRowMenu({
                 : { top: position.y, right: position.right }
             }
           >
-            {error && (
-              <p className={styles.errorText} role="alert">
-                {error}
-              </p>
-            )}
-
             {!isConfirmingDelete && (
               <div className={styles.rowMenuItems}>
                 {isTransfer && (

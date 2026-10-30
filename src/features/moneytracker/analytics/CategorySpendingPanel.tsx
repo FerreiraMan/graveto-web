@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchCategorySpendingReport } from './api'
 import type { CategoryAggregate, CategorySpendingReport } from './types'
-import { ApiError } from '../../../shared/api/errors'
 import { currencySymbol } from '../currency'
 import styles from '../MoneyTracker.module.css'
 
@@ -121,7 +120,7 @@ export function CategorySpendingPanel({
   onInitialYearResolved: (year: number) => void
 }) {
   const [report, setReport] = useState<CategorySpendingReport | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
   const symbol = currencySymbol(currency)
   // Tracks the accountSid+year this component last actually fetched (as
   // opposed to `report`, which holds the fetched DATA) — `year` starts
@@ -143,7 +142,7 @@ export function CategorySpendingPanel({
 
     let cancelled = false
     setReport(null)
-    setError(null)
+    setFailed(false)
 
     fetchCategorySpendingReport(accountSid, year)
       .then((result) => {
@@ -152,8 +151,18 @@ export function CategorySpendingPanel({
         setReport(result)
         onInitialYearResolved(result.year)
       })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Failed to load category spending report.')
+      .catch(() => {
+        if (cancelled) return
+        // Same fix as AccountOverviewPanel: a failed fetch must not leave
+        // lastFetchedKey pointing at this key, or re-selecting the same
+        // year later would match the stale ref and skip the fetch
+        // entirely, leaving the error on screen with no way to retry by
+        // reselecting the same year. Non-field failures already surface
+        // via the global notification toast; `failed` here only exists
+        // so this view settles out of "Loading…" instead of hanging on
+        // it indefinitely.
+        lastFetchedKey.current = null
+        setFailed(true)
       })
 
     return () => {
@@ -163,13 +172,9 @@ export function CategorySpendingPanel({
 
   return (
     <div>
-      {error && (
-        <p className={styles.errorText} role="alert">
-          {error}
-        </p>
-      )}
+      {report === null && !failed && <p className={styles.mutedText}>Loading…</p>}
 
-      {report === null && !error && <p className={styles.mutedText}>Loading…</p>}
+      {failed && <p className={styles.mutedText}>No results.</p>}
 
       {report !== null && report.categories.length === 0 && (
         <p className={styles.mutedText}>No category spending for this year.</p>

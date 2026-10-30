@@ -28,7 +28,11 @@ interface AccountRowProps {
 export function AccountRow({ account, isExpanded, onAccountUpdated, onToggle }: AccountRowProps) {
   const [details, setDetails] = useState<Account | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // Drives the inline Retry affordance only — the message itself already
+  // surfaced via the global toast. There's nothing else on screen yet for
+  // this row to show, so Retry stays inline rather than relying on the
+  // user to re-click the row.
+  const [loadFailed, setLoadFailed] = useState(false)
 
   const [isClosing, setIsClosing] = useState(false)
   const [isConfirmingClose, setIsConfirmingClose] = useState(false)
@@ -42,12 +46,14 @@ export function AccountRow({ account, isExpanded, onAccountUpdated, onToggle }: 
 
   async function loadDetails() {
     setIsLoading(true)
-    setError(null)
+    setLoadFailed(false)
     try {
       const result = await fetchAccount(account.sid)
       setDetails(result)
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load account details.')
+    } catch {
+      // Non-field failures already surface via the global notification
+      // toast; `loadFailed` here only drives the inline Retry button.
+      setLoadFailed(true)
     } finally {
       setIsLoading(false)
     }
@@ -76,7 +82,6 @@ export function AccountRow({ account, isExpanded, onAccountUpdated, onToggle }: 
     if (confirmationText !== CLOSE_CONFIRMATION_TEXT) return
 
     setIsClosing(true)
-    setError(null)
     try {
       await closeAccount(account.sid)
       const refreshed = await fetchAccount(account.sid)
@@ -84,8 +89,9 @@ export function AccountRow({ account, isExpanded, onAccountUpdated, onToggle }: 
       onAccountUpdated(refreshed)
       setIsConfirmingClose(false)
       setConfirmationText('')
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to close account.')
+    } catch {
+      // Non-field failures already surface via the global notification
+      // toast — nothing further to render here.
     } finally {
       setIsClosing(false)
     }
@@ -99,7 +105,6 @@ export function AccountRow({ account, isExpanded, onAccountUpdated, onToggle }: 
   async function handleAddMember() {
     setIsSubmittingMember(true)
     setMemberFieldErrors({})
-    setError(null)
     try {
       await addMember(account.sid, { email: memberEmail.trim(), role: memberRole })
       const refreshed = await fetchAccount(account.sid)
@@ -109,10 +114,10 @@ export function AccountRow({ account, isExpanded, onAccountUpdated, onToggle }: 
       setMemberEmail('')
       setMemberRole('CONTRIBUTOR')
     } catch (err) {
+      // Field-level validation errors still render inline next to their
+      // input. Any other failure already surfaced via the global toast.
       if (err instanceof ApiError && err.problem?.invalid_params) {
         setMemberFieldErrors(err.problem.invalid_params)
-      } else {
-        setError(err instanceof ApiError ? err.message : 'Failed to add member.')
       }
     } finally {
       setIsSubmittingMember(false)
@@ -156,9 +161,9 @@ export function AccountRow({ account, isExpanded, onAccountUpdated, onToggle }: 
       {isExpanded && (
         <div className={styles.managePanel}>
           {isLoading && <p className={styles.mutedText}>Loading…</p>}
-          {error && (
+          {loadFailed && (
             <p className={styles.errorText} role="alert">
-              {error}{' '}
+              Something went wrong.{' '}
               <button type="button" className={styles.linkButton} onClick={loadDetails}>
                 Retry
               </button>

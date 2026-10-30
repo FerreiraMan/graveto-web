@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { ApiError } from '../../../shared/api/errors'
 import { EDITABLE_RECURRING_STATUSES, RECURRING_STATUS_LABELS, isTerminalStatus, type RecurringOperationStatus } from '../recurring/types'
 import { TRANSACTION_TYPE_LABELS } from '../categories/types'
 import { fetchAllAccounts } from '../accounts/api'
@@ -45,7 +44,6 @@ function RecurringTransactionsSection({
 }) {
   const [status, setStatus] = useState<RecurringOperationStatus | ''>('')
   const [items, setItems] = useState<RecurringTransaction[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [editing, setEditing] = useState<RecurringTransaction | null>(null)
   const [openMenuSid, setOpenMenuSid] = useState<string | null>(null)
@@ -58,14 +56,17 @@ function RecurringTransactionsSection({
   useEffect(() => {
     let cancelled = false
     setItems(null)
-    setError(null)
 
     fetchRecurringTransactions({ accountSid, status: status || undefined })
       .then((result) => {
         if (!cancelled) setItems(result)
       })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Failed to load recurring transactions.')
+      .catch(() => {
+        // Non-field failures already surface via the global notification
+        // toast. Settling to an empty list (rather than leaving `items`
+        // null forever) stops the view from being stuck on "Loading…"
+        // indefinitely after a failed request.
+        if (!cancelled) setItems([])
       })
 
     return () => {
@@ -115,13 +116,7 @@ function RecurringTransactionsSection({
         </div>
       </div>
 
-      {error && (
-        <p className={styles.errorText} role="alert">
-          {error}
-        </p>
-      )}
-
-      {items === null && !error && <p className={styles.mutedText}>Loading…</p>}
+      {items === null && <p className={styles.mutedText}>Loading…</p>}
 
       {items !== null && items.length === 0 && <p className={styles.mutedText}>No recurring transactions found.</p>}
 
@@ -206,7 +201,6 @@ function RecurringTransfersSection({
   const [destinationAccountSid, setDestinationAccountSid] = useState('')
   const [accounts, setAccounts] = useState<Account[]>([])
   const [items, setItems] = useState<RecurringTransfer[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [editing, setEditing] = useState<RecurringTransfer | null>(null)
   const [openMenuSid, setOpenMenuSid] = useState<string | null>(null)
@@ -228,7 +222,6 @@ function RecurringTransfersSection({
   useEffect(() => {
     let cancelled = false
     setItems(null)
-    setError(null)
 
     fetchRecurringTransfersForAccount(accountSid, {
       status: status || undefined,
@@ -237,8 +230,12 @@ function RecurringTransfersSection({
       .then((result) => {
         if (!cancelled) setItems(result)
       })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Failed to load recurring transfers.')
+      .catch(() => {
+        // Non-field failures already surface via the global notification
+        // toast. Settling to an empty list (rather than leaving `items`
+        // null forever) stops the view from being stuck on "Loading…"
+        // indefinitely after a failed request.
+        if (!cancelled) setItems([])
       })
 
     return () => {
@@ -306,13 +303,7 @@ function RecurringTransfersSection({
         </div>
       </div>
 
-      {error && (
-        <p className={styles.errorText} role="alert">
-          {error}
-        </p>
-      )}
-
-      {items === null && !error && <p className={styles.mutedText}>Loading…</p>}
+      {items === null && <p className={styles.mutedText}>Loading…</p>}
 
       {items !== null && items.length === 0 && <p className={styles.mutedText}>No recurring transfers found.</p>}
 

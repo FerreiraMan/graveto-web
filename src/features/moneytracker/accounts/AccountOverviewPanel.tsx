@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchCashFlowReport } from '../analytics/api'
 import type { CashFlowReport } from '../analytics/types'
-import { ApiError } from '../../../shared/api/errors'
 import { currencySymbol } from '../currency'
 import styles from '../MoneyTracker.module.css'
 
@@ -46,7 +45,7 @@ export function AccountOverviewPanel({
   onYearResolved: (year: number, availableYears: number[]) => void
 }) {
   const [report, setReport] = useState<CashFlowReport | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
   const symbol = currencySymbol(currency)
   // Tracks the accountSid+year this component last actually fetched (as
   // opposed to `report`, which holds the fetched DATA) — `year` starts
@@ -66,7 +65,7 @@ export function AccountOverviewPanel({
 
     let cancelled = false
     setReport(null)
-    setError(null)
+    setFailed(false)
 
     fetchCashFlowReport(accountSid, year)
       .then((result) => {
@@ -75,8 +74,21 @@ export function AccountOverviewPanel({
         setReport(result)
         onYearResolved(result.year, result.yearsWithCashFlows)
       })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Failed to load cash flow report.')
+      .catch(() => {
+        if (cancelled) return
+        // A failed fetch must NOT leave lastFetchedKey pointing at this
+        // key — it's only ever written on success, so if left untouched
+        // here it would still hold whatever year last SUCCEEDED. Picking
+        // that same year again later would match the stale ref and skip
+        // the fetch entirely, leaving the view stuck and the user unable
+        // to retry by reselecting the same year. Resetting to null means
+        // the next effect run (any year, including this one again)
+        // always attempts a real fetch. Non-field failures already
+        // surface via the global notification toast; `failed` here only
+        // exists so this view settles out of "Loading…" instead of
+        // hanging on it indefinitely.
+        lastFetchedKey.current = null
+        setFailed(true)
       })
 
     return () => {
@@ -86,13 +98,9 @@ export function AccountOverviewPanel({
 
   return (
     <div>
-      {error && (
-        <p className={styles.errorText} role="alert">
-          {error}
-        </p>
-      )}
+      {report === null && !failed && <p className={styles.mutedText}>Loading…</p>}
 
-      {report === null && !error && <p className={styles.mutedText}>Loading…</p>}
+      {failed && <p className={styles.mutedText}>No results.</p>}
 
       {report !== null && (
         <>

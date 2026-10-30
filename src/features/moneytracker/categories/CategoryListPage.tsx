@@ -6,7 +6,6 @@ import { fetchAllCategories } from './api'
 import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue'
 import { buildCategoryTree, type CategoryGroup } from './categoryTree'
 import { CATEGORY_TRANSACTION_TYPES, type Category, type CategoryFilterRequest, TRANSACTION_TYPE_LABELS, type TransactionType } from './types'
-import { ApiError } from '../../../shared/api/errors'
 
 function CategoryDetails({ category }: { category: Category }) {
   return (
@@ -66,7 +65,6 @@ export function CategoryListPage() {
   const debouncedDisplayNameFilter = useDebouncedValue(displayNameFilter, 200)
   const [categories, setCategories] = useState<Category[] | null>(null)
   const [parentOptions, setParentOptions] = useState<Category[]>([])
-  const [error, setError] = useState<string | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
 
   useEffect(() => {
@@ -118,7 +116,6 @@ export function CategoryListPage() {
   useEffect(() => {
     let cancelled = false
     setCategories(null)
-    setError(null)
 
     const filters: CategoryFilterRequest = {}
     if (selectedAccountSid) filters.accountSid = selectedAccountSid
@@ -130,8 +127,12 @@ export function CategoryListPage() {
       .then((result) => {
         if (!cancelled) setCategories(result)
       })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Failed to load categories.')
+      .catch(() => {
+        // Non-field failures already surface via the global notification
+        // toast. Settling to an empty list (rather than leaving
+        // `categories` null forever) stops the view from being stuck on
+        // "Loading…" indefinitely after a failed request.
+        if (!cancelled) setCategories([])
       })
 
     return () => {
@@ -214,9 +215,7 @@ export function CategoryListPage() {
         </div>
       )}
 
-      {error && <p role="alert">{error}</p>}
-
-      {tree === null && !error && <p>Loading…</p>}
+      {tree === null && <p>Loading…</p>}
 
       {tree !== null && tree.length === 0 && <p>No categories found.</p>}
 

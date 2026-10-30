@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from './useAuth'
-import { ApiError } from '../../shared/api/errors'
 import { isValidEmail } from './validation'
 import styles from './AuthForm.module.css'
 
@@ -10,15 +9,19 @@ export function LoginPage() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  // Front-end validation only (never set from a backend response) — a
+  // failed login attempt already surfaces via the global toast, so this
+  // stays reserved for the one check that happens before any request is
+  // even made.
+  const [validationError, setValidationError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    setError(null)
+    setValidationError(null)
 
     if (!isValidEmail(email)) {
-      setError('Please enter a valid email address.')
+      setValidationError('Please enter a valid email address.')
       return
     }
 
@@ -27,8 +30,8 @@ export function LoginPage() {
     try {
       await login(email, password)
       navigate('/')
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
+    } catch {
+      // Non-field failures already surface via the global notification toast.
     } finally {
       setIsSubmitting(false)
     }
@@ -39,9 +42,9 @@ export function LoginPage() {
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <h1 className={styles.title}>Log in</h1>
 
-        {error && (
+        {validationError && (
           <p className={styles.error} role="alert">
-            {error}
+            {validationError}
           </p>
         )}
 

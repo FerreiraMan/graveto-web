@@ -11,14 +11,12 @@ export function RegisterPage() {
   const { register } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    setError(null)
     setFieldErrors({})
 
     const nextFieldErrors: Record<string, string> = {}
@@ -38,10 +36,10 @@ export function RegisterPage() {
       await register(email, password)
       setSuccess(true)
     } catch (err) {
+      // Field-level validation errors render inline next to their own
+      // input. Any other failure already surfaces via the global toast.
       if (err instanceof ApiError && err.problem?.invalid_params) {
         setFieldErrors(err.problem.invalid_params)
-      } else {
-        setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
       }
     } finally {
       setIsSubmitting(false)
@@ -65,12 +63,6 @@ export function RegisterPage() {
     <div className={styles.page}>
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <h1 className={styles.title}>Register</h1>
-
-        {error && (
-          <p className={styles.error} role="alert">
-            {error}
-          </p>
-        )}
 
         <div className={styles.field}>
           <label htmlFor="email">Email</label>

@@ -35,7 +35,6 @@ export function UpdateRecurringTransferForm({
   const [nextExecutionDate, setNextExecutionDate] = useState(recurringTransfer.nextExecutionDate)
   const [endDate, setEndDate] = useState(recurringTransfer.endDate ?? '')
   const [status, setStatus] = useState<RecurringOperationStatus>(recurringTransfer.status)
-  const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -46,7 +45,6 @@ export function UpdateRecurringTransferForm({
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    setError(null)
     setFieldErrors({})
     setIsSubmitting(true)
     try {
@@ -63,10 +61,10 @@ export function UpdateRecurringTransferForm({
       })
       onUpdated()
     } catch (err) {
+      // Field-level validation errors render inline next to their own
+      // input. Any other failure already surfaces via the global toast.
       if (err instanceof ApiError && err.problem?.invalid_params) {
         setFieldErrors(err.problem.invalid_params)
-      } else {
-        setError(err instanceof ApiError ? err.message : 'Failed to update recurring transfer.')
       }
     } finally {
       setIsSubmitting(false)
@@ -76,12 +74,6 @@ export function UpdateRecurringTransferForm({
   return (
     <form className={styles.formFadeIn} onSubmit={handleSubmit}>
       <h3 className={styles.srOnly}>Update recurring transfer</h3>
-
-      {error && (
-        <p className={styles.errorText} role="alert">
-          {error}
-        </p>
-      )}
 
       <div className={styles.field}>
         <label htmlFor="update-recurring-transfer-description">Description</label>

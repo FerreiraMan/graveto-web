@@ -3,13 +3,12 @@ import { fetchAllAccounts } from './api'
 import { AccountRow } from './AccountRow'
 import { CreateAccountModal } from './CreateAccountModal'
 import type { Account } from './types'
-import { ApiError } from '../../../shared/api/errors'
 import { AccountTabs } from './AccountTabs'
 import styles from '../MoneyTracker.module.css'
 
 export function AccountListPage() {
   const [accounts, setAccounts] = useState<Account[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
   const [selectedAccountSid, setSelectedAccountSid] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const [isCreating, setIsCreating] = useState(false)
@@ -19,13 +18,17 @@ export function AccountListPage() {
     let cancelled = false
 
     function load() {
-      setError(null)
+      setFailed(false)
       fetchAllAccounts()
         .then((result) => {
           if (!cancelled) setAccounts(result)
         })
-        .catch((err) => {
-          if (!cancelled) setError(err instanceof ApiError ? err.message : 'Failed to load accounts.')
+        .catch(() => {
+          // Non-field failures already surface via the global
+          // notification toast; `failed` here only drives the inline
+          // Retry affordance (there's no other action on this page to
+          // recover from a failed initial load).
+          if (!cancelled) setFailed(true)
         })
     }
 
@@ -68,16 +71,16 @@ export function AccountListPage() {
           </button>
         </div>
 
-        {error && (
+        {failed && (
           <p className={styles.errorText} role="alert">
-            {error}{' '}
+            Something went wrong.{' '}
             <button type="button" className={styles.linkButton} onClick={() => setRetryCount((n) => n + 1)}>
               Retry
             </button>
           </p>
         )}
 
-        {accounts === null && !error && <p className={styles.mutedText}>Loading…</p>}
+        {accounts === null && !failed && <p className={styles.mutedText}>Loading…</p>}
 
         {accounts !== null && accounts.length === 0 && <p className={styles.mutedText}>No accounts yet.</p>}
 
